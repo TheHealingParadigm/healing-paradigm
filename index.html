@@ -8,12 +8,11 @@
         body { margin: 0; overflow: hidden; background-color: #89CFF0; font-family: 'Courier New', Courier, monospace; }
         #noise-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.05; z-index: 10; background: url('https://grainy-gradients.vercel.app/noise.svg'); }
         #ui-container { position: absolute; bottom: 40px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 20; }
-        #ui-text { color: #CC5500; font-weight: bold; letter-spacing: 2px; background: rgba(255,255,255,0.9); padding: 12px 30px; border-radius: 50px; text-align: center; }
+        #ui-text { color: #CC5500; font-weight: bold; letter-spacing: 2px; background: rgba(255,255,255,0.9); padding: 12px 30px; border-radius: 50px; text-align: center; border: 2px solid #CC5500; }
         .btn-group { display: flex; gap: 10px; }
         .nav-btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         #back-btn { display: none; background: #CC5500; color: white; }
         #reset-btn { display: none; background: #333; color: white; }
-        .nav-btn:hover { opacity: 0.8; }
     </style>
 </head>
 <body>
@@ -54,7 +53,7 @@
         let currentState = 'outside';
         let armPivot;
 
-        // --- Lighting ---
+        // Lighting
         scene.add(new THREE.AmbientLight(0xffffff, 1.4));
         const sun = new THREE.DirectionalLight(0xffffff, 1);
         sun.position.set(5, 10, 5);
@@ -63,20 +62,56 @@
         const burntOrange = 0xCC5500;
         const babyBlue = 0x89CFF0; 
 
-        // --- Store Environment ---
+        // --- Store Architecture ---
         const store = new THREE.Mesh(new THREE.BoxGeometry(20, 12, 30), new THREE.MeshStandardMaterial({ color: babyBlue, side: THREE.BackSide }));
         store.position.z = -12;
+        store.name = "environment"; // Trigger for reset
         scene.add(store);
 
         const exterior = new THREE.Mesh(new THREE.PlaneGeometry(20, 12), new THREE.MeshStandardMaterial({ color: burntOrange }));
         exterior.position.z = 0.01;
+        exterior.name = "environment";
         scene.add(exterior);
+
+        // White Door Trim
+        const doorTrim = new THREE.Mesh(new THREE.PlaneGeometry(3.9, 5.9), new THREE.MeshStandardMaterial({color: 0xffffff}));
+        doorTrim.position.set(0, -3.2, 0.02);
+        scene.add(doorTrim);
 
         const door = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 5.5), new THREE.MeshStandardMaterial({ color: 0x000000, transparent: true, opacity: 0.15 }));
         door.position.set(0, -3.2, 0.05);
         door.name = "door";
         scene.add(door);
 
+        // Windows
+        const winGeo = new THREE.PlaneGeometry(4, 4);
+        const winMat = new THREE.MeshStandardMaterial({color: 0x89CFF0, transparent: true, opacity: 0.4});
+        const win1 = new THREE.Mesh(winGeo, winMat);
+        win1.position.set(-6, -1, 0.03);
+        const win2 = new THREE.Mesh(winGeo, winMat);
+        win2.position.set(6, -1, 0.03);
+        scene.add(win1, win2);
+
+        // Palm Trees
+        function createPalm(xPos) {
+            const tree = new THREE.Group();
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 6), new THREE.MeshStandardMaterial({color: 0x664422}));
+            trunk.position.y = -3;
+            tree.add(trunk);
+            for(let i=0; i<5; i++){
+                const leaf = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 2, 2, 4), new THREE.MeshStandardMaterial({color: 0x228B22}));
+                leaf.position.y = 0;
+                leaf.rotation.z = 1.2;
+                leaf.rotation.y = (i * Math.PI * 2) / 5;
+                tree.add(leaf);
+            }
+            tree.position.set(xPos, 0, 1);
+            scene.add(tree);
+        }
+        createPalm(-9);
+        createPalm(9);
+
+        // Interior Items
         const table = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.8, 2.5), new THREE.MeshStandardMaterial({ color: 0x5C4033 }));
         table.position.set(0, -5.2, -7);
         scene.add(table);
@@ -90,76 +125,61 @@
         record.name = "record";
         scene.add(record);
 
-        // --- Bookshelf & Pathos Plant ---
+        // Bookshelf
         const bookshelf = new THREE.Group();
-        const frame = new THREE.Mesh(new THREE.BoxGeometry(1, 8, 4), new THREE.MeshStandardMaterial({color: 0x442200}));
-        bookshelf.add(frame);
-        
-        // Add some books
+        bookshelf.add(new THREE.Mesh(new THREE.BoxGeometry(1, 8, 4), new THREE.MeshStandardMaterial({color: 0x442200})));
         for(let i=0; i<5; i++) {
             const book = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.2), new THREE.MeshStandardMaterial({color: Math.random() * 0xffffff}));
             book.position.set(0.2, -2 + (i * 1.3), (i-2)*0.6);
             book.name = "book";
             bookshelf.add(book);
         }
-        
-        // Pathos Plant
-        const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.2, 0.4), new THREE.MeshStandardMaterial({color: 0x8B4513}));
-        pot.position.set(0, 4.2, 0);
-        bookshelf.add(pot);
-
-        const vineGeo = new THREE.CapsuleGeometry(0.05, 3, 2, 4);
-        const vineMat = new THREE.MeshStandardMaterial({color: 0x228B22});
-        const vine = new THREE.Mesh(vineGeo, vineMat);
-        vine.position.set(0.6, 2.5, 0);
-        bookshelf.add(vine);
-
         bookshelf.position.set(-8.5, -2, -10);
         scene.add(bookshelf);
 
-        // --- Clerk with Waving Arm ---
+        // Clerk
         const clerk = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 0.8, 4, 8), new THREE.MeshStandardMaterial({color: 0x89CFF0}));
-        body.position.y = -3.2;
         const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), new THREE.MeshStandardMaterial({color: 0xffdbac}));
         head.position.y = -2.4;
-        
         armPivot = new THREE.Group();
         armPivot.position.set(0.5, -3, 0);
         const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.6, 2, 4), new THREE.MeshStandardMaterial({color: 0x89CFF0}));
         arm.position.y = 0.3;
         armPivot.add(arm);
-        
-        clerk.add(body, head, armPivot);
+        clerk.add(new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 0.8, 4, 8), new THREE.MeshStandardMaterial({color: 0x89CFF0})), head, armPivot);
         clerk.position.set(0, 0, -16.5);
+        clerk.children[0].position.y = -3.2;
         scene.add(clerk);
 
-        // --- 3D Sign ---
+        // --- 3D Sign with White Trim ---
         const loader = new FontLoader();
         loader.load('https://threejs.org/examples/fonts/gentilis_bold.typeface.json', (font) => {
-            const textGeo = new TextGeometry('THE HEALING PARADIGM', { font: font, size: 0.65, height: 0.25, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.04 });
+            const textParams = { font: font, size: 0.65, height: 0.25, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.04 };
+            const textGeo = new TextGeometry('THE HEALING PARADIGM', textParams);
             textGeo.center();
             const textMesh = new THREE.Mesh(textGeo, new THREE.MeshStandardMaterial({ color: babyBlue }));
+            
+            // White Trim (Backing)
+            const trimGeo = new TextGeometry('THE HEALING PARADIGM', {...textParams, height: 0.1, bevelSize: 0.08});
+            trimGeo.center();
+            const trimMesh = new THREE.Mesh(trimGeo, new THREE.MeshStandardMaterial({color: 0xffffff}));
+            trimMesh.position.set(0, 3.8, 0.15);
+            
             textMesh.position.set(0, 3.8, 0.2);
-            scene.add(textMesh);
+            scene.add(textMesh, trimMesh);
         });
 
+        // Navigation
         camera.position.set(0, 0, 15); 
         camera.lookAt(0, 0, 0);
 
-        function updateUI() {
-            document.getElementById('back-btn').style.display = (currentState === 'outside') ? 'none' : 'block';
-            document.getElementById('reset-btn').style.display = (currentState === 'outside') ? 'none' : 'block';
-            const txt = document.getElementById('ui-text');
-            if (currentState === 'outside') txt.innerText = "CLICK THE DOOR TO ENTER";
-            if (currentState === 'inside') txt.innerText = "CLICK THE RECORD OR EXPLORE THE SHELF";
-            if (currentState === 'checkout') txt.innerText = "CHECKOUT INITIATED - THANKS FOR VISITING!";
-        }
-
-        function moveCamera(zPos, nextState, speed = 1500) {
-            currentState = nextState;
-            new TWEEN.Tween(camera.position).to({ z: zPos, y: (nextState === 'outside' ? 0 : -1) }, speed).easing(TWEEN.Easing.Cubic.InOut).start();
-            updateUI();
+        function resetStore() {
+            new TWEEN.Tween(record.position).to({ x: 0, y: -4.7, z: -7 }, 500).start();
+            currentState = 'outside';
+            new TWEEN.Tween(camera.position).to({ x: 0, y: 0, z: 15 }, 1000).easing(TWEEN.Easing.Cubic.InOut).start();
+            document.getElementById('back-btn').style.display = 'none';
+            document.getElementById('reset-btn').style.display = 'none';
+            document.getElementById('ui-text').innerText = "CLICK THE DOOR TO ENTER";
         }
 
         window.addEventListener('mousedown', (e) => {
@@ -169,14 +189,21 @@
             const hits = raycaster.intersectObjects(scene.children, true);
             if (hits.length > 0) {
                 const obj = hits[0].object;
-                if (obj.name === "door" && currentState === 'outside') moveCamera(-3, 'inside');
-                if (obj.name === "book") {
-                    alert("Book selection coming soon!");
+                if (obj.name === "door" && currentState === 'outside') {
+                    currentState = 'inside';
+                    new TWEEN.Tween(camera.position).to({ z: -3, y: -1 }, 1500).start();
+                    document.getElementById('back-btn').style.display = 'block';
+                    document.getElementById('reset-btn').style.display = 'block';
+                    document.getElementById('ui-text').innerText = "CLICK THE RECORD OR SHELF";
+                } else if (obj.name === "environment") {
+                    resetStore();
+                } else if (obj.name === "book") {
                     document.getElementById('ui-text').innerText = "BOOKS COMING SOON...";
-                }
-                if (obj.name === "record" && currentState === 'inside') {
-                    new TWEEN.Tween(record.position).to({ x: 0, y: -3.7, z: -15 }, 1200).easing(TWEEN.Easing.Quadratic.InOut).start();
-                    setTimeout(() => moveCamera(-10, 'checkout'), 400);
+                } else if (obj.name === "record" && currentState === 'inside') {
+                    currentState = 'checkout';
+                    new TWEEN.Tween(record.position).to({ x: 0, y: -3.7, z: -15 }, 1200).start();
+                    new TWEEN.Tween(camera.position).to({ z: -10, y: -1 }, 1500).start();
+                    document.getElementById('ui-text').innerText = "CHECKOUT INITIATED";
                 }
             }
         });
@@ -184,26 +211,16 @@
         document.getElementById('back-btn').addEventListener('click', () => {
             if (currentState === 'checkout') {
                 new TWEEN.Tween(record.position).to({ x: 0, y: -4.7, z: -7 }, 1000).start();
-                moveCamera(-3, 'inside');
-            } else if (currentState === 'inside') moveCamera(15, 'outside');
+                currentState = 'inside';
+                new TWEEN.Tween(camera.position).to({ z: -3, y: -1 }, 1500).start();
+            } else resetStore();
         });
-
-        document.getElementById('reset-btn').addEventListener('click', () => {
-            new TWEEN.Tween(record.position).to({ x: 0, y: -4.7, z: -7 }, 500).start();
-            moveCamera(15, 'outside', 800);
-        });
+        document.getElementById('reset-btn').addEventListener('click', resetStore);
 
         function animate() {
             requestAnimationFrame(animate);
             TWEEN.update();
-            const time = Date.now() * 0.005;
-            
-            if(currentState === 'checkout' && armPivot) {
-                armPivot.rotation.z = Math.sin(time * 2) * 0.5 - 0.5;
-            } else if (armPivot) {
-                armPivot.rotation.z = -0.2;
-            }
-
+            if(currentState === 'checkout') armPivot.rotation.z = Math.sin(Date.now()*0.01)*0.5-0.5;
             if(camera.position.z < 1) camera.lookAt(0, -4.5, -15);
             else camera.lookAt(0, 0, 0);
             renderer.render(scene, camera);
