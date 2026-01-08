@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Healing Paradigm</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #f5f0e1; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; background-color: #89CFF0; font-family: sans-serif; }
         #noise-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; opacity: 0.05; z-index: 10;
@@ -14,7 +14,7 @@
         #ui {
             position: absolute; bottom: 40px; width: 100%; text-align: center;
             color: #CC5500; font-weight: bold; letter-spacing: 2px; z-index: 5;
-            text-shadow: 0 0 8px rgba(255,255,255,0.8);
+            background: rgba(255,255,255,0.9); padding: 12px 0; width: 100%;
         }
     </style>
 </head>
@@ -40,7 +40,7 @@
 
         // --- Core Setup ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87ceeb); // Baby Blue Sky
+        scene.background = new THREE.Color(0x87ceeb); 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -49,99 +49,92 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
-        // --- Brighter Lighting ---
-        const ambient = new THREE.AmbientLight(0xffffff, 1.2); 
+        // --- Lighting ---
+        const ambient = new THREE.AmbientLight(0xffffff, 1.3); 
         scene.add(ambient);
-        const pointLight = new THREE.PointLight(0xffffff, 50);
-        pointLight.position.set(0, 5, -10);
-        scene.add(pointLight);
+        const topLight = new THREE.DirectionalLight(0xffffff, 1);
+        topLight.position.set(5, 10, 5);
+        scene.add(topLight);
 
         // --- Colors ---
         const burntOrange = 0xCC5500;
-        const babyBlue = 0x89CFF0;
+        const babyBlue = 0x89CFF0; 
 
         // --- Environment ---
-        // Store Walls (Vibrant Blue Interior)
-        const storeGeo = new THREE.BoxGeometry(15, 10, 20);
-        const storeMat = new THREE.MeshStandardMaterial({ color: babyBlue, side: THREE.BackSide });
-        const store = new THREE.Mesh(storeGeo, storeMat);
-        store.position.z = -10;
+        // Main Store Box (Inside is Baby Blue)
+        const store = new THREE.Mesh(
+            new THREE.BoxGeometry(20, 12, 30),
+            new THREE.MeshStandardMaterial({ color: babyBlue, side: THREE.BackSide })
+        );
+        store.position.z = -12;
         scene.add(store);
 
-        // Front Wall (Orange Exterior)
-        const frontWall = new THREE.Mesh(
-            new THREE.PlaneGeometry(15, 10),
+        // Exterior Face (Burnt Orange)
+        const exterior = new THREE.Mesh(
+            new THREE.PlaneGeometry(20, 12),
             new THREE.MeshStandardMaterial({ color: burntOrange })
         );
-        frontWall.position.z = 0.01;
-        scene.add(frontWall);
+        exterior.position.z = 0.01;
+        scene.add(exterior);
 
         // Door
         const door = new THREE.Mesh(
-            new THREE.PlaneGeometry(3, 5),
-            new THREE.MeshStandardMaterial({ color: 0x000000, transparent: true, opacity: 0.2 })
+            new THREE.PlaneGeometry(3.5, 5.5),
+            new THREE.MeshStandardMaterial({ color: 0x000000, transparent: true, opacity: 0.15 })
         );
-        door.position.set(0, -2.5, 0.05);
+        door.position.set(0, -3.2, 0.05);
         door.name = "door";
         scene.add(door);
 
-        // --- Interior Furniture ---
-        // Vinyl Table (Center)
+        // --- Simplified Interior ---
+        // Single Table
         const table = new THREE.Mesh(
-            new THREE.BoxGeometry(4, 0.8, 2.5),
+            new THREE.BoxGeometry(4.5, 0.8, 2.5),
             new THREE.MeshStandardMaterial({ color: 0x5C4033 })
         );
-        table.position.set(0, -4.2, -7);
+        table.position.set(0, -5.2, -7);
         scene.add(table);
 
-        // Checkout Counter (Back)
+        // Single Checkout Counter
         const counter = new THREE.Mesh(
-            new THREE.BoxGeometry(6, 1.5, 1.5),
+            new THREE.BoxGeometry(6, 1.8, 2),
             new THREE.MeshStandardMaterial({ color: burntOrange })
         );
-        counter.position.set(0, -3.5, -15);
+        counter.position.set(0, -4.7, -15);
         scene.add(counter);
 
-        // The Vinyl Record
-        const recordGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.05, 32);
-        const recordMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-        const record = new THREE.Mesh(recordGeo, recordMat);
-        record.position.set(0, -3.7, -7); // Starts on table
-        record.rotation.x = 0; 
+        // One Record
+        const record = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.8, 0.8, 0.05, 32),
+            new THREE.MeshStandardMaterial({ color: 0x111111 })
+        );
+        record.position.set(0, -4.7, -7); 
         record.name = "record";
         scene.add(record);
 
-        // --- 3D Sign ---
+        // --- 3D Sign (Now Baby Blue for visibility) ---
         const loader = new FontLoader();
         loader.load('https://threejs.org/examples/fonts/gentilis_bold.typeface.json', (font) => {
             const textGeo = new TextGeometry('THE HEALING PARADIGM', {
-                font: font, size: 0.5, height: 0.2,
-                bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.02
+                font: font, size: 0.65, height: 0.25,
+                bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.04
             });
             textGeo.center();
-            const textMesh = new THREE.Mesh(textGeo, new THREE.MeshStandardMaterial({ color: burntOrange }));
-            textMesh.position.set(0, 3.5, 0.2);
+            // Using babyBlue color here as requested
+            const textMesh = new THREE.Mesh(textGeo, new THREE.MeshStandardMaterial({ color: babyBlue }));
+            textMesh.position.set(0, 3.8, 0.2);
             scene.add(textMesh);
         });
 
-        // --- Camera States ---
-        const states = {
-            outside: { pos: [0, 0, 8], look: [0, 0, 0] },
-            inside: { pos: [0, -1, -3], look: [0, -4, -10] },
-            checkout: { pos: [0, -1, -12], look: [0, -3, -16] }
-        };
+        // --- Camera Logic (Starts Outside) ---
+        camera.position.set(0, 0, 15); // Far back outside
+        camera.lookAt(0, 0, 0);
 
-        camera.position.set(...states.outside.pos);
-        camera.lookAt(...states.outside.look);
-
-        // --- Interaction Logic ---
-        function moveCamera(stateKey) {
-            const s = states[stateKey];
-            new TWEEN.Tween(camera.position).to({x:s.pos[0], y:s.pos[1], z:s.pos[2]}, 1500).easing(TWEEN.Easing.Quadratic.InOut).start();
-            
-            const ui = document.getElementById('ui');
-            if(stateKey === 'inside') ui.innerText = "CLICK THE RECORD TO CHECKOUT";
-            if(stateKey === 'checkout') ui.innerText = "RECORD SENT TO COUNTER";
+        function moveCamera(zPos) {
+            new TWEEN.Tween(camera.position)
+                .to({ z: zPos, y: -1 }, 1800)
+                .easing(TWEEN.Easing.Cubic.InOut)
+                .start();
         }
 
         window.addEventListener('mousedown', (e) => {
@@ -152,17 +145,21 @@
             
             if (hits.length > 0) {
                 const obj = hits[0].object;
-                if (obj.name === "door") moveCamera('inside');
+                if (obj.name === "door") {
+                    moveCamera(-3); // Enter Store
+                    document.getElementById('ui').innerText = "CLICK THE RECORD TO START CHECKOUT";
+                }
                 
                 if (obj.name === "record") {
-                    // Move Record to Counter
+                    // Record flies to counter
                     new TWEEN.Tween(record.position)
-                        .to({ x: 0, y: -2.7, z: -15 }, 1000)
-                        .easing(TWEEN.Easing.Quadratic.Out)
+                        .to({ x: 0, y: -3.7, z: -15 }, 1200)
+                        .easing(TWEEN.Easing.Quadratic.InOut)
                         .start();
                     
-                    // Move Camera to checkout
-                    setTimeout(() => moveCamera('checkout'), 500);
+                    // Camera zooms into counter
+                    setTimeout(() => moveCamera(-10), 400);
+                    document.getElementById('ui').innerText = "CHECKOUT INITIATED - WELCOME TO THE PARADIGM";
                     console.log("Checkout initiated");
                 }
             }
@@ -171,9 +168,8 @@
         function animate() {
             requestAnimationFrame(animate);
             TWEEN.update();
-            // Constant lookAt for smoothness inside
-            if (camera.position.z < 0) {
-                camera.lookAt(0, -3.5, -15);
+            if(camera.position.z < 1) {
+                camera.lookAt(0, -4.5, -15);
             }
             renderer.render(scene, camera);
         }
