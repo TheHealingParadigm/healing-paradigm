@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Healing Paradigm</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; }
+        
+        /* Grainy Film Grain Overlay */
+        #noise-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            opacity: 0.05;
+            background: url('https://grainy-gradients.vercel.app/noise.svg');
+            z-index: 10;
+        }
+
+        #ui-layer {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            pointer-events: none;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="noise-overlay"></div>
+    <div id="ui-layer">Click the door to enter</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+                "tween": "https://cdnjs.cloudflare.com/ajax/libs/tween.js/23.1.1/tween.esm.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+        import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+        import TWEEN from 'tween';
+
+        // --- Configuration ---
+        const COLORS = {
+            burntOrange: 0xCC5500,
+            babyBlue: 0x87ceeb,
+            darkWood: 0x442200,
+            leafGreen: 0x228B22
+        };
+
+        // --- Scene Setup ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(COLORS.babyBlue);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        // --- Lighting ---
+        const ambient = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambient);
+        const sun = new THREE.DirectionalLight(0xffffff, 1);
+        sun.position.set(5, 10, 7.5);
+        scene.add(sun);
+
+        // --- 3D Groovy Text ---
+        const loader = new FontLoader();
+        loader.load('https://threejs.org/examples/fonts/gentilis_bold.typeface.json', (font) => {
+            const textGeo = new TextGeometry('The Healing\nParadigm', {
+                font: font,
+                size: 0.5,
+                height: 0.2,
+                curveSegments: 12,
+                bevelEnabled: true,
+                bevelThickness: 0.08,
+                bevelSize: 0.05,
+                bevelOffset: 0,
+                bevelSegments: 5
+            });
+            textGeo.center();
+            const textMesh = new THREE.Mesh(textGeo, new THREE.MeshPhongMaterial({ color: COLORS.burntOrange }));
+            textMesh.position.set(0, 2.8, -9.8);
+            scene.add(textMesh);
+        });
+
+        // --- Environment Architecture ---
+
+        // Store Exterior
+        const building = new THREE.Mesh(
+            new THREE.BoxGeometry(10, 8, 10),
+            new THREE.MeshPhongMaterial({ color: COLORS.burntOrange, side: THREE.BackSide })
+        );
+        building.position.z = -15;
+        scene.add(building);
+
+        // Interactive Door
+        const door = new THREE.Mesh(
+            new THREE.PlaneGeometry(2.5, 4.5),
+            new THREE.MeshPhongMaterial({ color: 0x111111, transparent: true, opacity: 0.2 })
+        );
+        door.position.set(0, -1.75, -10.01);
+        door.name = "door";
+        scene.add(door);
+
+        // Tropical Plants
+        const plantGeo = new THREE.ConeGeometry(0.4, 2, 8);
+        const plantMat = new THREE.MeshPhongMaterial({ color: COLORS.leafGreen });
+        for(let i = 0; i < 6; i++) {
+            const plant = new THREE.Mesh(plantGeo, plantMat);
+            const xPos = (i < 3 ? -3 : 3) + (Math.random() * 0.5);
+            plant.position.set(xPos, -3, -9.5);
+            scene.add(plant);
+        }
+
+        // Inside: Record Table
+        const table = new THREE.Mesh(
+            new THREE.BoxGeometry(3, 1, 2),
+            new THREE.MeshPhongMaterial({ color: COLORS.darkWood })
+        );
+        table.position.set(0, -3.5, -15);
+        table.name = "table";
+        scene.add(table);
+
+        // Inside: Checkout Record
+        const record = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.5, 0.5, 0.05, 32),
+            new THREE.MeshPhongMaterial({ color: 0x111111 })
+        );
+        record.position.set(0, -2.8, -19);
+        record.rotation.x = Math.PI / 2;
+        record.name = "record";
+        scene.add(record);
+
+        // --- Camera States & Transitions ---
+        const states = {
+            outside: { pos: { x: 0, y: 0, z: 6 } },
+            inside: { pos: { x: 0, y: 0, z: -12.5 } },
+            checkout: { pos: { x: 0, y: -1, z: -17 } }
+        };
+
+        camera.position.z = states.outside.pos.z;
+
+        function transitionCamera(targetState) {
+            new TWEEN.Tween(camera.position)
+                .to(targetState.pos, 1200)
+                .easing(TWEEN.Easing.Quadratic.InOut)
+                .start();
+        }
+
+        // --- Interaction Logic ---
+        window.addEventListener('mousedown', (e) => {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            
+            const hits = raycaster.intersectObjects(scene.children);
+            if (hits.length > 0) {
+                const obj = hits[0].object;
+                if (obj.name === "door") {
+                    transitionCamera(states.inside);
+                    document.getElementById('ui-layer').innerText = "Click the records table";
+                }
+                if (obj.name === "table") {
+                    transitionCamera(states.checkout);
+                    document.getElementById('ui-layer').innerText = "Click the record to buy";
+                }
+                if (obj.name === "record") {
+                    console.log("Checkout initiated");
+                    document.getElementById('ui-layer').innerText = "Check the console (F12)!";
+                }
+            }
+        });
+
+        // --- Main Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+            TWEEN.update();
+            renderer.render(scene, camera);
+        }
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
