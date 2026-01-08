@@ -6,10 +6,9 @@
     <title>The Healing Paradigm</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #89CFF0; font-family: 'Courier New', Courier, monospace; }
-        #noise-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.05; z-index: 10; background: url('https://grainy-gradients.vercel.app/noise.svg'); }
-        #ui-container { position: absolute; bottom: 40px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 20; }
-        #ui-text { color: #CC5500; font-weight: bold; letter-spacing: 2px; background: rgba(255,255,255,0.9); padding: 12px 30px; border-radius: 50px; text-align: center; border: 2px solid #CC5500; }
-        .btn-group { display: flex; gap: 10px; }
+        #ui-container { position: absolute; bottom: 40px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 20; pointer-events: none; }
+        #ui-text { color: #CC5500; font-weight: bold; letter-spacing: 2px; background: rgba(255,255,255,0.9); padding: 12px 30px; border-radius: 50px; text-align: center; border: 2px solid #CC5500; pointer-events: auto; }
+        .btn-group { display: flex; gap: 10px; pointer-events: auto; }
         .nav-btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: 0.3s; }
         #back-btn { display: none; background: #CC5500; color: white; }
         #reset-btn { display: none; background: #333; color: white; }
@@ -18,7 +17,6 @@
     </style>
 </head>
 <body>
-    <div id="noise-overlay"></div>
     <div id="ui-container">
         <button id="buy-btn" class="nav-btn">BUY NOW</button>
         <div class="btn-group">
@@ -57,80 +55,92 @@
         let currentState = 'outside', recordState = 'table', buyClickedOnce = false, isDancing = false;
         let armPivot, clerkGroup, confetti = [];
 
-        // Lights
-        scene.add(new THREE.AmbientLight(0xffffff, 1.4));
+        scene.add(new THREE.AmbientLight(0xffffff, 1.5));
         const sun = new THREE.DirectionalLight(0xffffff, 1);
         sun.position.set(5, 10, 5);
         scene.add(sun);
 
-        // Store Colors
         const burntOrange = 0xCC5500, babyBlue = 0x89CFF0; 
 
         // Environment
         const store = new THREE.Mesh(new THREE.BoxGeometry(20, 12, 30), new THREE.MeshStandardMaterial({ color: babyBlue, side: THREE.BackSide }));
-        store.position.z = -12; store.name = "environment";
-        scene.add(store);
+        store.position.z = -12; store.name = "environment"; scene.add(store);
 
         const exterior = new THREE.Mesh(new THREE.PlaneGeometry(20, 12), new THREE.MeshStandardMaterial({ color: burntOrange }));
-        exterior.position.z = 0.01; exterior.name = "environment";
-        scene.add(exterior);
+        exterior.position.z = 0.01; exterior.name = "environment"; scene.add(exterior);
 
-        // Architecture
+        // Windows
+        const winGeo = new THREE.PlaneGeometry(5, 5);
+        const winMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 });
+        const leftWin = new THREE.Mesh(winGeo, winMat); leftWin.position.set(-6, 0, 0.02);
+        const rightWin = new THREE.Mesh(winGeo, winMat); rightWin.position.set(6, 0, 0.02);
+        scene.add(leftWin, rightWin);
+
+        // White Trim & Door
         const doorTrim = new THREE.Mesh(new THREE.PlaneGeometry(3.9, 5.9), new THREE.MeshStandardMaterial({color: 0xffffff}));
         doorTrim.position.set(0, -3.2, 0.02); scene.add(doorTrim);
 
         const door = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 5.5), new THREE.MeshStandardMaterial({ color: 0x000000, transparent: true, opacity: 0.15 }));
-        door.position.set(0, -3.2, 0.05); door.name = "door";
-        scene.add(door);
+        door.position.set(0, -3.2, 0.05); door.name = "door"; scene.add(door);
 
+        // Palm Trees
+        function createPalm(x) {
+            const palm = new THREE.Group();
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 7), new THREE.MeshStandardMaterial({color: 0x664422}));
+            trunk.position.y = -2.5; palm.add(trunk);
+            for(let i=0; i<6; i++) {
+                const leaf = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 3, 2, 8), new THREE.MeshStandardMaterial({color: 0x228B22}));
+                leaf.rotation.z = 1.3; leaf.rotation.y = (i * Math.PI * 2) / 6; palm.add(leaf);
+            }
+            palm.position.set(x, 0, 2); scene.add(palm);
+        }
+        createPalm(-9.5); createPalm(9.5);
+
+        // Furniture
         const table = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.8, 2.5), new THREE.MeshStandardMaterial({ color: 0x5C4033 }));
         table.position.set(0, -5.2, -7); scene.add(table);
 
         const counter = new THREE.Mesh(new THREE.BoxGeometry(6, 1.8, 2), new THREE.MeshStandardMaterial({ color: burntOrange }));
         counter.position.set(0, -4.7, -15); scene.add(counter);
 
-        const record = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.05, 32), new THREE.MeshStandardMaterial({ color: 0x111111 }));
-        record.position.set(0, -4.7, -7); record.name = "record";
-        scene.add(record);
+        const record = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.05, 32), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+        record.position.set(0, -4.7, -7); record.name = "record"; scene.add(record);
 
         // Clerk
         clerkGroup = new THREE.Group();
         armPivot = new THREE.Group(); armPivot.position.set(0.5, -3, 0);
-        const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.6, 2, 4), new THREE.MeshStandardMaterial({color: 0x89CFF0}));
-        arm.position.y = 0.3; armPivot.add(arm);
-        const clerkBody = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 0.8, 4, 8), new THREE.MeshStandardMaterial({color: 0x89CFF0}));
-        clerkBody.position.y = -3.2;
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), new THREE.MeshStandardMaterial({color: 0xffdbac}));
-        head.position.y = -2.4;
-        clerkGroup.add(clerkBody, head, armPivot);
-        clerkGroup.position.set(0, 0, -16.5);
-        scene.add(clerkGroup);
+        const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.8, 4, 8), new THREE.MeshStandardMaterial({color: babyBlue}));
+        arm.position.y = 0.4; armPivot.add(arm);
+        const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 1, 4, 8), new THREE.MeshStandardMaterial({color: babyBlue}));
+        body.position.y = -3.2;
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), new THREE.MeshStandardMaterial({color: 0xffdbac}));
+        head.position.y = -2.3;
+        clerkGroup.add(body, head, armPivot); clerkGroup.position.set(0, 0, -16.5); scene.add(clerkGroup);
 
-        // Confetti Generator
-        function createConfetti() {
-            for(let i=0; i<50; i++){
-                const p = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.2), new THREE.MeshBasicMaterial({color: Math.random()*0xffffff, side: THREE.DoubleSide}));
-                p.position.set(Math.random()*10-5, 5, -15);
-                scene.add(p);
-                confetti.push({mesh: p, speed: Math.random()*0.1+0.05});
-            }
-        }
+        // Font Loading
+        const loader = new FontLoader();
+        loader.load('https://threejs.org/examples/fonts/gentilis_bold.typeface.json', (font) => {
+            const textParams = { font: font, size: 0.7, height: 0.2, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.02 };
+            const textMesh = new THREE.Mesh(new TextGeometry('THE HEALING PARADIGM', textParams), new THREE.MeshStandardMaterial({color: babyBlue}));
+            const trimMesh = new THREE.Mesh(new TextGeometry('THE HEALING PARADIGM', {...textParams, height: 0.1, bevelSize: 0.06}), new THREE.MeshStandardMaterial({color: 0xffffff}));
+            textMesh.geometry.center(); trimMesh.geometry.center();
+            textMesh.position.set(0, 4, 0.1); trimMesh.position.set(0, 4, 0.05);
+            scene.add(textMesh, trimMesh);
+        });
 
-        // Camera Logic
-        camera.position.set(0, 0, 15); camera.lookAt(0, 0, 0);
+        camera.position.set(0, 0, 18);
 
         function resetStore() {
             recordState = 'table'; currentState = 'outside'; buyClickedOnce = false; isDancing = false;
             new TWEEN.Tween(record.position).to({ x: 0, y: -4.7, z: -7 }, 500).start();
-            new TWEEN.Tween(camera.position).to({ x: 0, y: 0, z: 15 }, 1000).easing(TWEEN.Easing.Cubic.InOut).start();
+            new TWEEN.Tween(record.rotation).to({ x: 0, y: 0, z: 0 }, 500).start();
+            new TWEEN.Tween(camera.position).to({ x: 0, y: 0, z: 18 }, 1000).start();
+            document.getElementById('buy-btn').style.display = 'none';
             document.getElementById('back-btn').style.display = 'none';
             document.getElementById('reset-btn').style.display = 'none';
-            document.getElementById('buy-btn').style.display = 'none';
-            document.getElementById('buy-btn').innerText = 'BUY NOW';
             document.getElementById('ui-text').innerText = "CLICK THE DOOR TO ENTER";
         }
 
-        // --- Interactions ---
         window.addEventListener('mousedown', (e) => {
             mouse.x = (e.clientX/window.innerWidth)*2-1; mouse.y = -(e.clientY/window.innerHeight)*2+1;
             raycaster.setFromCamera(mouse, camera);
@@ -139,21 +149,21 @@
                 const obj = hits[0].object;
                 if (obj.name === "door" && currentState === 'outside') {
                     currentState = 'inside';
-                    new TWEEN.Tween(camera.position).to({ z: -3, y: -1 }, 1500).start();
+                    new TWEEN.Tween(camera.position).to({ z: -2, y: -1 }, 1500).start();
                     document.getElementById('back-btn').style.display = 'block';
                     document.getElementById('reset-btn').style.display = 'block';
-                    document.getElementById('ui-text').innerText = "CLICK THE RECORD TO INSPECT";
-                } else if (obj.name === "environment") resetStore();
-                else if (obj.name === "record") {
+                    document.getElementById('ui-text').innerText = "CLICK RECORD TO INSPECT";
+                } else if (obj.name === "record") {
                     if (recordState === 'table') {
                         recordState = 'floating';
-                        new TWEEN.Tween(record.position).to({ y: -1, z: -5 }, 1000).start();
-                        new TWEEN.Tween(record.rotation).to({ x: Math.PI / 2 }, 1000).start();
+                        new TWEEN.Tween(record.position).to({ y: -1, z: -5 }, 800).start();
+                        new TWEEN.Tween(record.rotation).to({ x: Math.PI / 2 }, 800).start();
+                        document.getElementById('ui-text').innerText = "CLICK AGAIN TO BUY";
                     } else if (recordState === 'floating') {
                         recordState = 'counter'; currentState = 'checkout';
-                        new TWEEN.Tween(record.position).to({ x: 0, y: -3.7, z: -15 }, 1200).start();
-                        new TWEEN.Tween(record.rotation).to({ x: 0 }, 1200).start();
-                        new TWEEN.Tween(camera.position).to({ z: -10, y: -1 }, 1500).start();
+                        new TWEEN.Tween(record.position).to({ x: 0, y: -3.7, z: -15 }, 1000).start();
+                        new TWEEN.Tween(record.rotation).to({ x: 0 }, 1000).start();
+                        new TWEEN.Tween(camera.position).to({ z: -10, y: -1 }, 1200).start();
                         setTimeout(() => { document.getElementById('buy-btn').style.display = 'block'; }, 1000);
                     }
                 }
@@ -163,47 +173,34 @@
         document.getElementById('buy-btn').addEventListener('click', () => {
             if (!buyClickedOnce) {
                 buyClickedOnce = true;
-                const cashAudio = new Audio('https://www.myinstants.com/media/sounds/ka-ching.mp3');
-                cashAudio.play();
-                createConfetti();
                 isDancing = true;
+                new Audio('https://www.myinstants.com/media/sounds/ka-ching.mp3').play();
+                for(let i=0; i<60; i++) {
+                    const p = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 0.15), new THREE.MeshBasicMaterial({color: Math.random()*0xffffff, side: 2}));
+                    p.position.set(Math.random()*6-3, 5, -15); scene.add(p);
+                    confetti.push({mesh: p, speed: Math.random()*0.1+0.05});
+                }
                 document.getElementById('buy-btn').innerText = 'WELCOME TO THE PARADIGM';
-                document.getElementById('ui-text').innerText = "EXPERIENCE THE PARADIGM";
+                document.getElementById('ui-text').innerText = "SMEEZ TIME!";
             }
         });
 
-        document.getElementById('back-btn').addEventListener('click', () => {
-            if (currentState === 'checkout') resetStore();
-            else resetStore();
-        });
-
+        document.getElementById('back-btn').addEventListener('click', resetStore);
         document.getElementById('reset-btn').addEventListener('click', resetStore);
 
         function animate() {
             requestAnimationFrame(animate);
             TWEEN.update();
             const t = Date.now() * 0.01;
-            
-            // Smeez Dance Logic (Rhythmic side sway)
-            if(isDancing) {
-                clerkGroup.position.x = Math.sin(t * 1.5) * 0.5;
-                clerkGroup.rotation.z = Math.sin(t * 1.5) * 0.1;
-                armPivot.rotation.z = Math.sin(t * 3) * 1.2;
-            } else if(currentState === 'checkout') {
-                armPivot.rotation.z = Math.sin(t*0.5)*0.5-0.5;
+            if (isDancing) {
+                clerkGroup.position.x = Math.sin(t * 2) * 0.4;
+                armPivot.rotation.z = Math.sin(t * 4) * 1.5;
+            } else if (currentState === 'checkout') {
+                armPivot.rotation.z = Math.sin(t * 0.5) * 0.5;
             }
-
-            if(recordState === 'counter') record.rotation.y += 0.05;
-
-            // Confetti fall
-            confetti.forEach((c, i) => {
-                c.mesh.position.y -= c.speed;
-                c.mesh.rotation.x += 0.1;
-                if(c.mesh.position.y < -6) scene.remove(c.mesh);
-            });
-
-            if(camera.position.z < 1) camera.lookAt(0, -4.5, -15);
-            else camera.lookAt(0, 0, 0);
+            if (recordState === 'counter') record.rotation.y += 0.05;
+            confetti.forEach(c => { c.mesh.position.y -= c.speed; c.mesh.rotation.x += 0.1; });
+            if (camera.position.z < 1) camera.lookAt(0, -4.5, -15); else camera.lookAt(0, 0, 0);
             renderer.render(scene, camera);
         }
         animate();
