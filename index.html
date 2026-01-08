@@ -12,24 +12,29 @@
             background: url('https://grainy-gradients.vercel.app/noise.svg');
         }
         #ui-container {
-            position: absolute; bottom: 40px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px; z-index: 20;
+            position: absolute; bottom: 40px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 20;
         }
         #ui-text {
             color: #CC5500; font-weight: bold; letter-spacing: 2px;
             background: rgba(255,255,255,0.9); padding: 12px 30px; border-radius: 50px;
         }
-        #back-btn {
-            display: none; padding: 10px 25px; background: #CC5500; color: white;
-            border: none; border-radius: 5px; cursor: pointer; font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2); pointer-events: auto;
+        .btn-group { display: flex; gap: 10px; }
+        .nav-btn {
+            padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; 
+            font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
-        #back-btn:hover { background: #e65f00; }
+        #back-btn { display: none; background: #CC5500; color: white; }
+        #reset-btn { display: none; background: #333; color: white; }
+        .nav-btn:hover { opacity: 0.8; }
     </style>
 </head>
 <body>
     <div id="noise-overlay"></div>
     <div id="ui-container">
-        <button id="back-btn">← GO BACK</button>
+        <div class="btn-group">
+            <button id="back-btn" class="nav-btn">← GO BACK</button>
+            <button id="reset-btn" class="nav-btn">RESET STORE ↺</button>
+        </div>
         <div id="ui-text">CLICK THE DOOR TO ENTER</div>
     </div>
 
@@ -49,7 +54,6 @@
         import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
         import TWEEN from 'tween';
 
-        // --- Core Setup ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x87ceeb); 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -59,21 +63,19 @@
 
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
-
-        // --- State Tracking ---
-        let currentState = 'outside'; // 'outside', 'inside', 'checkout'
+        let currentState = 'outside';
 
         // --- Lighting ---
-        scene.add(new THREE.AmbientLight(0xffffff, 1.3));
-        const topLight = new THREE.DirectionalLight(0xffffff, 1);
-        topLight.position.set(5, 10, 5);
-        scene.add(topLight);
+        scene.add(new THREE.AmbientLight(0xffffff, 1.4));
+        const sun = new THREE.DirectionalLight(0xffffff, 1);
+        sun.position.set(5, 10, 5);
+        scene.add(sun);
 
-        // --- Objects ---
+        // --- Colors ---
         const burntOrange = 0xCC5500;
         const babyBlue = 0x89CFF0; 
 
-        // Store Interior (Baby Blue)
+        // --- Objects ---
         const store = new THREE.Mesh(
             new THREE.BoxGeometry(20, 12, 30),
             new THREE.MeshStandardMaterial({ color: babyBlue, side: THREE.BackSide })
@@ -81,7 +83,6 @@
         store.position.z = -12;
         scene.add(store);
 
-        // Store Exterior (Orange)
         const exterior = new THREE.Mesh(
             new THREE.PlaneGeometry(20, 12),
             new THREE.MeshStandardMaterial({ color: burntOrange })
@@ -89,7 +90,6 @@
         exterior.position.z = 0.01;
         scene.add(exterior);
 
-        // Door
         const door = new THREE.Mesh(
             new THREE.PlaneGeometry(3.5, 5.5),
             new THREE.MeshStandardMaterial({ color: 0x000000, transparent: true, opacity: 0.15 })
@@ -98,7 +98,6 @@
         door.name = "door";
         scene.add(door);
 
-        // Furniture
         const table = new THREE.Mesh(
             new THREE.BoxGeometry(4.5, 0.8, 2.5),
             new THREE.MeshStandardMaterial({ color: 0x5C4033 })
@@ -121,7 +120,17 @@
         record.name = "record";
         scene.add(record);
 
-        // --- 3D Sign (Baby Blue) ---
+        // --- The Person (Clerk) ---
+        const clerk = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 0.8, 4, 8), new THREE.MeshStandardMaterial({color: 0x89CFF0}));
+        body.position.y = -3.2;
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), new THREE.MeshStandardMaterial({color: 0xffdbac}));
+        head.position.y = -2.4;
+        clerk.add(body, head);
+        clerk.position.set(0, 0, -16.5);
+        scene.add(clerk);
+
+        // --- 3D Sign ---
         const loader = new FontLoader();
         loader.load('https://threejs.org/examples/fonts/gentilis_bold.typeface.json', (font) => {
             const textGeo = new TextGeometry('THE HEALING PARADIGM', {
@@ -134,41 +143,37 @@
             scene.add(textMesh);
         });
 
-        // --- Camera Movement Logic ---
+        // --- Camera Logic ---
         camera.position.set(0, 0, 15); 
         camera.lookAt(0, 0, 0);
 
         function updateUI() {
-            const btn = document.getElementById('back-btn');
+            document.getElementById('back-btn').style.display = (currentState === 'outside') ? 'none' : 'block';
+            document.getElementById('reset-btn').style.display = (currentState === 'outside') ? 'none' : 'block';
             const txt = document.getElementById('ui-text');
-            btn.style.display = (currentState === 'outside') ? 'none' : 'block';
-            
             if (currentState === 'outside') txt.innerText = "CLICK THE DOOR TO ENTER";
             if (currentState === 'inside') txt.innerText = "CLICK THE RECORD TO START CHECKOUT";
-            if (currentState === 'checkout') txt.innerText = "CHECKOUT INITIATED - WELCOME TO THE PARADIGM";
+            if (currentState === 'checkout') txt.innerText = "CHECKOUT INITIATED - TALK TO THE CLERK";
         }
 
-        function moveCamera(zPos, nextState) {
+        function moveCamera(zPos, nextState, speed = 1500) {
             currentState = nextState;
             new TWEEN.Tween(camera.position)
-                .to({ z: zPos, y: (nextState === 'outside' ? 0 : -1) }, 1500)
+                .to({ z: zPos, y: (nextState === 'outside' ? 0 : -1) }, speed)
                 .easing(TWEEN.Easing.Cubic.InOut)
                 .start();
             updateUI();
         }
 
-        // --- Click Interactions ---
+        // --- Interactions ---
         window.addEventListener('mousedown', (e) => {
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
             const hits = raycaster.intersectObjects(scene.children);
-            
             if (hits.length > 0) {
                 const obj = hits[0].object;
-                if (obj.name === "door" && currentState === 'outside') {
-                    moveCamera(-3, 'inside');
-                }
+                if (obj.name === "door" && currentState === 'outside') moveCamera(-3, 'inside');
                 if (obj.name === "record" && currentState === 'inside') {
                     new TWEEN.Tween(record.position).to({ x: 0, y: -3.7, z: -15 }, 1200).easing(TWEEN.Easing.Quadratic.InOut).start();
                     setTimeout(() => moveCamera(-10, 'checkout'), 400);
@@ -176,10 +181,8 @@
             }
         });
 
-        // Back Button Logic
         document.getElementById('back-btn').addEventListener('click', () => {
             if (currentState === 'checkout') {
-                // Return record to table and go to inside
                 new TWEEN.Tween(record.position).to({ x: 0, y: -4.7, z: -7 }, 1000).start();
                 moveCamera(-3, 'inside');
             } else if (currentState === 'inside') {
@@ -187,14 +190,16 @@
             }
         });
 
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            new TWEEN.Tween(record.position).to({ x: 0, y: -4.7, z: -7 }, 500).start();
+            moveCamera(15, 'outside', 800);
+        });
+
         function animate() {
             requestAnimationFrame(animate);
             TWEEN.update();
-            if(camera.position.z < 1) {
-                camera.lookAt(0, -4.5, -15);
-            } else {
-                camera.lookAt(0, 0, 0);
-            }
+            if(camera.position.z < 1) camera.lookAt(0, -4.5, -15);
+            else camera.lookAt(0, 0, 0);
             renderer.render(scene, camera);
         }
         animate();
