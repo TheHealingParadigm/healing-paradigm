@@ -5,22 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Healing Paradigm</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #89CFF0; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; background-color: #89CFF0; font-family: 'Courier New', Courier, monospace; }
         #noise-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; opacity: 0.05; z-index: 10;
             background: url('https://grainy-gradients.vercel.app/noise.svg');
         }
-        #ui {
-            position: absolute; bottom: 40px; width: 100%; text-align: center;
-            color: #CC5500; font-weight: bold; letter-spacing: 2px; z-index: 5;
-            background: rgba(255,255,255,0.9); padding: 12px 0; width: 100%;
+        #ui-container {
+            position: absolute; bottom: 40px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px; z-index: 20;
         }
+        #ui-text {
+            color: #CC5500; font-weight: bold; letter-spacing: 2px;
+            background: rgba(255,255,255,0.9); padding: 12px 30px; border-radius: 50px;
+        }
+        #back-btn {
+            display: none; padding: 10px 25px; background: #CC5500; color: white;
+            border: none; border-radius: 5px; cursor: pointer; font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2); pointer-events: auto;
+        }
+        #back-btn:hover { background: #e65f00; }
     </style>
 </head>
 <body>
     <div id="noise-overlay"></div>
-    <div id="ui">CLICK THE DOOR TO ENTER</div>
+    <div id="ui-container">
+        <button id="back-btn">← GO BACK</button>
+        <div id="ui-text">CLICK THE DOOR TO ENTER</div>
+    </div>
 
     <script type="importmap">
         {
@@ -49,19 +60,20 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
+        // --- State Tracking ---
+        let currentState = 'outside'; // 'outside', 'inside', 'checkout'
+
         // --- Lighting ---
-        const ambient = new THREE.AmbientLight(0xffffff, 1.3); 
-        scene.add(ambient);
+        scene.add(new THREE.AmbientLight(0xffffff, 1.3));
         const topLight = new THREE.DirectionalLight(0xffffff, 1);
         topLight.position.set(5, 10, 5);
         scene.add(topLight);
 
-        // --- Colors ---
+        // --- Objects ---
         const burntOrange = 0xCC5500;
         const babyBlue = 0x89CFF0; 
 
-        // --- Environment ---
-        // Main Store Box (Inside is Baby Blue)
+        // Store Interior (Baby Blue)
         const store = new THREE.Mesh(
             new THREE.BoxGeometry(20, 12, 30),
             new THREE.MeshStandardMaterial({ color: babyBlue, side: THREE.BackSide })
@@ -69,7 +81,7 @@
         store.position.z = -12;
         scene.add(store);
 
-        // Exterior Face (Burnt Orange)
+        // Store Exterior (Orange)
         const exterior = new THREE.Mesh(
             new THREE.PlaneGeometry(20, 12),
             new THREE.MeshStandardMaterial({ color: burntOrange })
@@ -86,8 +98,7 @@
         door.name = "door";
         scene.add(door);
 
-        // --- Simplified Interior ---
-        // Single Table
+        // Furniture
         const table = new THREE.Mesh(
             new THREE.BoxGeometry(4.5, 0.8, 2.5),
             new THREE.MeshStandardMaterial({ color: 0x5C4033 })
@@ -95,7 +106,6 @@
         table.position.set(0, -5.2, -7);
         scene.add(table);
 
-        // Single Checkout Counter
         const counter = new THREE.Mesh(
             new THREE.BoxGeometry(6, 1.8, 2),
             new THREE.MeshStandardMaterial({ color: burntOrange })
@@ -103,7 +113,6 @@
         counter.position.set(0, -4.7, -15);
         scene.add(counter);
 
-        // One Record
         const record = new THREE.Mesh(
             new THREE.CylinderGeometry(0.8, 0.8, 0.05, 32),
             new THREE.MeshStandardMaterial({ color: 0x111111 })
@@ -112,7 +121,7 @@
         record.name = "record";
         scene.add(record);
 
-        // --- 3D Sign (Now Baby Blue for visibility) ---
+        // --- 3D Sign (Baby Blue) ---
         const loader = new FontLoader();
         loader.load('https://threejs.org/examples/fonts/gentilis_bold.typeface.json', (font) => {
             const textGeo = new TextGeometry('THE HEALING PARADIGM', {
@@ -120,23 +129,35 @@
                 bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.04
             });
             textGeo.center();
-            // Using babyBlue color here as requested
             const textMesh = new THREE.Mesh(textGeo, new THREE.MeshStandardMaterial({ color: babyBlue }));
             textMesh.position.set(0, 3.8, 0.2);
             scene.add(textMesh);
         });
 
-        // --- Camera Logic (Starts Outside) ---
-        camera.position.set(0, 0, 15); // Far back outside
+        // --- Camera Movement Logic ---
+        camera.position.set(0, 0, 15); 
         camera.lookAt(0, 0, 0);
 
-        function moveCamera(zPos) {
-            new TWEEN.Tween(camera.position)
-                .to({ z: zPos, y: -1 }, 1800)
-                .easing(TWEEN.Easing.Cubic.InOut)
-                .start();
+        function updateUI() {
+            const btn = document.getElementById('back-btn');
+            const txt = document.getElementById('ui-text');
+            btn.style.display = (currentState === 'outside') ? 'none' : 'block';
+            
+            if (currentState === 'outside') txt.innerText = "CLICK THE DOOR TO ENTER";
+            if (currentState === 'inside') txt.innerText = "CLICK THE RECORD TO START CHECKOUT";
+            if (currentState === 'checkout') txt.innerText = "CHECKOUT INITIATED - WELCOME TO THE PARADIGM";
         }
 
+        function moveCamera(zPos, nextState) {
+            currentState = nextState;
+            new TWEEN.Tween(camera.position)
+                .to({ z: zPos, y: (nextState === 'outside' ? 0 : -1) }, 1500)
+                .easing(TWEEN.Easing.Cubic.InOut)
+                .start();
+            updateUI();
+        }
+
+        // --- Click Interactions ---
         window.addEventListener('mousedown', (e) => {
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -145,23 +166,24 @@
             
             if (hits.length > 0) {
                 const obj = hits[0].object;
-                if (obj.name === "door") {
-                    moveCamera(-3); // Enter Store
-                    document.getElementById('ui').innerText = "CLICK THE RECORD TO START CHECKOUT";
+                if (obj.name === "door" && currentState === 'outside') {
+                    moveCamera(-3, 'inside');
                 }
-                
-                if (obj.name === "record") {
-                    // Record flies to counter
-                    new TWEEN.Tween(record.position)
-                        .to({ x: 0, y: -3.7, z: -15 }, 1200)
-                        .easing(TWEEN.Easing.Quadratic.InOut)
-                        .start();
-                    
-                    // Camera zooms into counter
-                    setTimeout(() => moveCamera(-10), 400);
-                    document.getElementById('ui').innerText = "CHECKOUT INITIATED - WELCOME TO THE PARADIGM";
-                    console.log("Checkout initiated");
+                if (obj.name === "record" && currentState === 'inside') {
+                    new TWEEN.Tween(record.position).to({ x: 0, y: -3.7, z: -15 }, 1200).easing(TWEEN.Easing.Quadratic.InOut).start();
+                    setTimeout(() => moveCamera(-10, 'checkout'), 400);
                 }
+            }
+        });
+
+        // Back Button Logic
+        document.getElementById('back-btn').addEventListener('click', () => {
+            if (currentState === 'checkout') {
+                // Return record to table and go to inside
+                new TWEEN.Tween(record.position).to({ x: 0, y: -4.7, z: -7 }, 1000).start();
+                moveCamera(-3, 'inside');
+            } else if (currentState === 'inside') {
+                moveCamera(15, 'outside');
             }
         });
 
@@ -170,6 +192,8 @@
             TWEEN.update();
             if(camera.position.z < 1) {
                 camera.lookAt(0, -4.5, -15);
+            } else {
+                camera.lookAt(0, 0, 0);
             }
             renderer.render(scene, camera);
         }
