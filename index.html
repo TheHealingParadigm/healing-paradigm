@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Healing Paradigm - Final Fixed</title>
+    <title>The Healing Paradigm - Complete Build</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Courier New', Courier, monospace; }
         #ui-container { position: absolute; bottom: 40px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 100; pointer-events: none; }
@@ -54,16 +54,12 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
-        let currentState = 'outside', recordState = 'table', isDancing = false;
-        let armL, armR, clerkGroup, recordSpotlight, reflection, fans = [], palms = [], confetti = [], windowTint;
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-
-        // --- EXTERIOR ELEMENTS ---
+        // --- EXTERIOR ---
         const foundation = new THREE.Mesh(new THREE.BoxGeometry(100, 2, 120), new THREE.MeshStandardMaterial({ color: 0x222 }));
         foundation.position.set(0, -6.5, -35); scene.add(foundation);
 
-        // Palm Trees
         function makePalm(x, z) {
             const p = new THREE.Group();
             const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 30), new THREE.MeshStandardMaterial({color: 0x664422}));
@@ -72,22 +68,10 @@
                 const l = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 10), new THREE.MeshStandardMaterial({color: 0x2d5a27}));
                 l.rotation.z = 1.4; l.rotation.y = i * (Math.PI/4); leaves.add(l);
             }
-            p.add(trunk, leaves); p.position.set(x, 7, z); scene.add(p); palms.push(leaves);
+            p.add(trunk, leaves); p.position.set(x, 7, z); scene.add(p);
         }
         makePalm(-45, 25); makePalm(45, 25);
 
-        // Sidewalk Lights
-        function makeLamp(x) {
-            const l = new THREE.Group();
-            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 15), new THREE.MeshStandardMaterial({color: 0x111}));
-            const head = new THREE.Mesh(new THREE.SphereGeometry(1), new THREE.MeshBasicMaterial({color: 0xffffaa}));
-            head.position.y = 7.5;
-            const pLight = new THREE.PointLight(0xffaa00, 800, 50); pLight.position.y = 7.5;
-            l.add(pole, head, pLight); l.position.set(x, 0, 15); scene.add(l);
-        }
-        makeLamp(-30); makeLamp(30);
-
-        // Baby Blue Building & Door
         const wallMat = new THREE.MeshStandardMaterial({ color: 0x89CFF0 });
         const bWall = new THREE.Mesh(new THREE.BoxGeometry(70, 40, 10), wallMat);
         bWall.position.set(0, 12, -3); scene.add(bWall);
@@ -95,35 +79,70 @@
         const door = new THREE.Mesh(new THREE.BoxGeometry(10, 18, 1.2), wallMat);
         door.position.set(0, 4.5, 2.5); door.name = "door_trigger"; scene.add(door);
 
-        windowTint = new THREE.Mesh(new THREE.PlaneGeometry(65, 35), new THREE.MeshBasicMaterial({color: 0x000, transparent: true, opacity: 0.95}));
+        const windowTint = new THREE.Mesh(new THREE.PlaneGeometry(65, 35), new THREE.MeshBasicMaterial({color: 0x000, transparent: true, opacity: 0.95}));
         windowTint.position.set(0, 10, 2.1); scene.add(windowTint);
 
-        // --- INTERIOR ---
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(80, 110), new THREE.MeshStandardMaterial({ color: 0x111 }));
-        floor.rotation.x = -Math.PI/2; floor.position.set(0, -5.45, -55); scene.add(floor);
-
+        // --- INTERIOR ROOM ---
         const intWalls = new THREE.Mesh(new THREE.BoxGeometry(80, 45, 110), new THREE.MeshStandardMaterial({ color: 0x89CFF0, side: THREE.BackSide }));
         intWalls.position.z = -55; intWalls.name = "interior_wall"; scene.add(intWalls);
 
-        // Record & Reflection
+        const woodMat = new THREE.MeshStandardMaterial({ color: 0x3d2b1f });
+        const browseTable = new THREE.Mesh(new THREE.BoxGeometry(12, 6, 7), woodMat);
+        browseTable.position.set(0, -2.5, -25); scene.add(browseTable);
+
+        // Bookshelf (Right)
+        const bShelf = new THREE.Group();
+        bShelf.add(new THREE.Mesh(new THREE.BoxGeometry(8, 14, 1), woodMat));
+        for(let j=0; j<3; j++) {
+            const p = new THREE.Mesh(new THREE.BoxGeometry(8, 0.4, 3), woodMat);
+            p.position.set(0, -5 + (j*5), 1.5); bShelf.add(p);
+            for(let k=0; k<3; k++) {
+                const bk = new THREE.Mesh(new THREE.BoxGeometry(1.2, 3, 2), new THREE.MeshStandardMaterial({color: 0x700000}));
+                bk.position.set(-2.5 + (k*2.5), -3.3 + (j*5), 1.5); bk.name = "coming_soon"; bShelf.add(bk);
+            }
+        }
+        bShelf.position.set(36, 1, -45); bShelf.rotation.y = -Math.PI/2; scene.add(bShelf);
+
+        // Clothing Rack (Left)
+        const rack = new THREE.Group();
+        const rBar = new THREE.Mesh(new THREE.BoxGeometry(14, 0.2, 0.2), new THREE.MeshStandardMaterial({color: 0x111}));
+        rack.add(rBar);
+        for(let i=0; i<6; i++) {
+            const s = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3.5, 0.3), new THREE.MeshStandardMaterial({color: 0xeeeeee}));
+            s.position.set(-5 + (i*2), -2, 0); s.name = "coming_soon"; rack.add(s);
+        }
+        rack.position.set(-36, 6, -45); rack.rotation.y = Math.PI/2; scene.add(rack);
+
+        // Clerk & Counter
+        const counter = new THREE.Mesh(new THREE.BoxGeometry(20, 8, 8), new THREE.MeshStandardMaterial({ color: 0xCC5500 }));
+        counter.position.set(0, -1.5, -50); scene.add(counter);
+
+        let clerkGroup = new THREE.Group();
+        let body = new THREE.Mesh(new THREE.CapsuleGeometry(1.5, 7), new THREE.MeshStandardMaterial({color: 0x222})); body.position.y = 6;
+        let armL = new THREE.Group(); armL.position.set(-1.8, 9, 0); let a1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 3), new THREE.MeshStandardMaterial({color: 0x5c4033})); a1.position.y = -1.5; armL.add(a1);
+        let armR = new THREE.Group(); armR.position.set(1.8, 9, 0); let a2 = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 3), new THREE.MeshStandardMaterial({color: 0x5c4033})); a2.position.y = -1.5; armR.add(a2);
+        clerkGroup.add(body, armL, armR); clerkGroup.position.set(0, -5, -58); scene.add(clerkGroup);
+
+        // Signs & Fonts
+        const fLoader = new FontLoader();
+        fLoader.load('https://threejs.org/examples/fonts/helvetiker_bold.typeface.json', (font) => {
+            const mainS = new THREE.Mesh(new TextGeometry('THE HEALING PARADIGM', { font, size: 3, height: 0.5 }));
+            mainS.geometry.center(); mainS.position.set(0, 24, 3); scene.add(mainS);
+
+            const addNeon = (txt, x, y, z, rY) => {
+                const g = new TextGeometry(txt, { font, size: 1.5, height: 0.1 });
+                const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({color: 0x9400D3, emissive: 0x9400D3, emissiveIntensity: 2}));
+                m.position.set(x, y, z); m.rotation.y = rY; m.name = "coming_soon"; scene.add(m);
+            };
+            addNeon('Clothing', -35.5, 12, -45, Math.PI/2);
+            addNeon('Books', 35.5, 10, -45, -Math.PI/2);
+        });
+
+        // Record
         const record = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.1, 64), new THREE.MeshStandardMaterial({ color: 0x111 }));
         record.position.set(0, 0.6, -25); record.name = "record"; scene.add(record);
-        
-        reflection = new THREE.Mesh(new THREE.RingGeometry(1.2, 1.4, 32), new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0}));
-        reflection.position.y = 0.06; reflection.rotation.x = -Math.PI/2; record.add(reflection);
 
-        recordSpotlight = new THREE.SpotLight(0xffffff, 0, 100, 0.4);
-        recordSpotlight.position.set(0, 20, -25); scene.add(recordSpotlight); recordSpotlight.target = record;
-
-        // Clerk
-        clerkGroup = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.CapsuleGeometry(1.5, 7), new THREE.MeshStandardMaterial({color: 0x222})); body.position.y = 6;
-        const headM = new THREE.Mesh(new THREE.SphereGeometry(1.2), new THREE.MeshStandardMaterial({color: 0x5c4033})); headM.position.y = 11.5;
-        armL = new THREE.Group(); armL.position.set(-1.8, 9, 0); const a1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 3), new THREE.MeshStandardMaterial({color: 0x5c4033})); a1.position.y = -1.5; armL.add(a1);
-        armR = new THREE.Group(); armR.position.set(1.8, 9, 0); const a2 = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 3), new THREE.MeshStandardMaterial({color: 0x5c4033})); a2.position.y = -1.5; armR.add(a2);
-        clerkGroup.add(body, headM, armL, armR); clerkGroup.position.set(0, -5, -58); scene.add(clerkGroup);
-
-        // Interaction Logic
+        // Interaction
         window.addEventListener('mousedown', (e) => {
             mouse.x = (e.clientX/window.innerWidth)*2-1; mouse.y = -(e.clientY/window.innerHeight)*2+1;
             raycaster.setFromCamera(mouse, camera);
@@ -134,53 +153,17 @@
                     new TWEEN.Tween(camera.position).to({z: -5, y: 3}, 1000).start();
                     new TWEEN.Tween(windowTint.material).to({opacity: 0}, 500).start();
                     document.getElementById('back-btn').style.display = 'block';
-                    document.getElementById('reset-btn').style.display = 'block';
-                } else if (o.name === "record") {
-                    if (recordState === 'table') {
-                        recordState = 'view';
-                        new TWEEN.Tween(record.position).to({y: 3, z: -10}, 800).start();
-                        new TWEEN.Tween(record.rotation).to({x: Math.PI/2}, 800).start();
-                        new TWEEN.Tween(recordSpotlight).to({intensity: 5000}, 400).start();
-                        new TWEEN.Tween(reflection.material).to({opacity: 0.5}, 400).start();
-                    } else {
-                        recordState = 'checkout';
-                        new TWEEN.Tween(camera.position).to({z: -35, y: 5}, 1000).start();
-                        new TWEEN.Tween(record.position).to({x: 5, y: 3, z: -50}, 800).start();
-                        new TWEEN.Tween(record.rotation).to({x: 0}, 800).start();
-                        recordSpotlight.intensity = 0; reflection.material.opacity = 0;
-                        document.getElementById('buy-btn').style.display = 'block';
-                    }
+                } else if (o.name === "coming_soon") {
+                    document.getElementById('ui-text').innerText = "COMING SOON...";
+                    setTimeout(() => document.getElementById('ui-text').innerText = "BROWSE THE SHOP", 2000);
                 }
             }
         });
-
-        document.getElementById('buy-btn').addEventListener('click', () => {
-            isDancing = true;
-            for(let i=0; i<100; i++) {
-                const p = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.3), new THREE.MeshBasicMaterial({color: Math.random()*0xffffff}));
-                p.position.set(Math.random()*30-15, 20, -50); scene.add(p);
-                confetti.push({mesh: p, speed: Math.random()*0.2 + 0.1});
-            }
-        });
-
-        document.getElementById('reset-btn').addEventListener('click', () => location.reload());
 
         camera.position.set(0, 10, 75);
 
         function animate() {
             requestAnimationFrame(animate); TWEEN.update();
-            const t = Date.now() * 0.003;
-            palms.forEach((p, i) => p.rotation.x = Math.sin(t + i) * 0.1);
-            confetti.forEach(c => { if(c.mesh.position.y > -5.5) c.mesh.position.y -= c.speed; });
-            
-            if (isDancing) {
-                clerkGroup.position.y = -5 + Math.abs(Math.sin(t*3)) * 1.5;
-                if (Math.sin(t*3) > 0) {
-                    armL.rotation.z = 2.5; armR.rotation.x = -1.5; armR.rotation.z = 0;
-                } else {
-                    armR.rotation.z = -2.5; armL.rotation.x = -1.5; armL.rotation.z = 0;
-                }
-            }
             if (camera.position.z < 0) camera.lookAt(0, 3, -60); else camera.lookAt(0, 5, 0);
             renderer.render(scene, camera);
         }
