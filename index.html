@@ -50,7 +50,6 @@
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.outputColorSpace = THREE.SRGBColorSpace;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
         document.body.appendChild(renderer.domElement);
 
         const scene = new THREE.Scene();
@@ -59,11 +58,10 @@
         const mouse = new THREE.Vector2();
 
         let currentState = 'outside', recordState = 'table', isDancing = false, isPlaying = false;
-        let armL, armR, head, clerkGroup, recordSpotlight, turntable, confetti = [];
-        let fans = [];
+        let armL, armR, head, clerkGroup, recordSpotlight, turntable, fans = [], confetti = [];
 
-        // --- LIGHTING ---
-        const amb = new THREE.AmbientLight(0xffffff, 1.2); 
+        // --- GLOBAL LIGHTING ---
+        const amb = new THREE.AmbientLight(0xffffff, 1.0); 
         scene.add(amb);
 
         // --- EXTERIOR ---
@@ -74,20 +72,37 @@
         roof.position.set(0, 27.5, -2);
         const foundation = new THREE.Mesh(new THREE.BoxGeometry(70, 2, 25), new THREE.MeshStandardMaterial({ color: 0x777777 }));
         foundation.position.set(0, -6.5, 5);
-        buildingGroup.add(walls, roof, foundation); 
+        
+        // Windows
+        const winG = new THREE.BoxGeometry(12, 12, 0.5);
+        const winM = new THREE.MeshStandardMaterial({color: 0x111, transparent: true, opacity: 0.4});
+        const w1 = new THREE.Mesh(winG, winM); w1.position.set(-15, 8, 2.1);
+        const w2 = new THREE.Mesh(winG, winM); w2.position.set(15, 8, 2.1);
+        
+        buildingGroup.add(walls, roof, foundation, w1, w2); 
         scene.add(buildingGroup);
+
+        function createStreetLamp(x) {
+            const lamp = new THREE.Group();
+            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 15), new THREE.MeshStandardMaterial({color: 0x222}));
+            const lHead = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), new THREE.MeshBasicMaterial({color: 0xffffee}));
+            lHead.position.y = 7.5;
+            const light = new THREE.PointLight(0xffaa00, 50, 20); light.position.y = 7.5;
+            lamp.add(pole, lHead, light); lamp.position.set(x, 0, 12); scene.add(lamp);
+        }
+        createStreetLamp(-22); createStreetLamp(22);
 
         function createPalm(x) {
             const p = new THREE.Group();
             const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.8, 25), new THREE.MeshStandardMaterial({color: 0x664422}));
             p.add(trunk);
-            for(let i=0; i<10; i++){
+            for(let i=0; i<8; i++){
                 const l = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 10, 2, 8), new THREE.MeshStandardMaterial({color: 0x228B22}));
-                l.position.y = 12.5; l.rotation.z = 1.4; l.rotation.y = i * Math.PI/5; p.add(l);
+                l.position.y = 12.5; l.rotation.z = 1.4; l.rotation.y = i * Math.PI/4; p.add(l);
             }
-            p.position.set(x, 5, 15); scene.add(p);
+            p.position.set(x, 5, 18); scene.add(p);
         }
-        createPalm(-40); createPalm(40);
+        createPalm(-42); createPalm(42);
 
         const door = new THREE.Mesh(new THREE.PlaneGeometry(8, 16), new THREE.MeshStandardMaterial({ color: 0x111, transparent: true, opacity: 0.6 }));
         door.position.set(0, 5, 2.2); door.name = "door_trigger"; scene.add(door);
@@ -96,30 +111,21 @@
         const interior = new THREE.Mesh(new THREE.BoxGeometry(70, 40, 100), new THREE.MeshStandardMaterial({ color: 0x89CFF0, side: THREE.BackSide }));
         interior.position.z = -50; scene.add(interior);
 
-        // Plant Wall
-        const plantWall = new THREE.Group();
-        for(let i=0; i<80; i++) {
-            const leaf = new THREE.Mesh(new THREE.BoxGeometry(3, 1, 0.1), new THREE.MeshStandardMaterial({color: 0x1a3300}));
-            leaf.position.set(Math.random()*40-20, Math.random()*30-10, -99);
-            leaf.rotation.z = Math.random(); plantWall.add(leaf);
-        }
-        scene.add(plantWall);
-
-        // Fans
+        // UPSCALE FANS (Clean 5-Blade)
         function createFan(x, z) {
             const fanGroup = new THREE.Group();
-            const motor = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 1), new THREE.MeshStandardMaterial({color: 0x3d2b1f}));
+            const motor = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 0.8), new THREE.MeshStandardMaterial({color: 0x3d2b1f}));
             const bladePivot = new THREE.Group();
             for(let i=0; i<5; i++) {
-                const blade = new THREE.Mesh(new THREE.BoxGeometry(7, 0.1, 1.5), new THREE.MeshStandardMaterial({color: 0x3d2b1f}));
+                const blade = new THREE.Mesh(new THREE.BoxGeometry(7, 0.1, 1.2), new THREE.MeshStandardMaterial({color: 0x3d2b1f}));
                 blade.position.x = 4; blade.rotation.y = (i * Math.PI * 2) / 5; bladePivot.add(blade);
             }
-            fanGroup.add(motor, bladePivot); fanGroup.position.set(x, 15, z); scene.add(fanGroup);
+            fanGroup.add(motor, bladePivot); fanGroup.position.set(x, 16, z); scene.add(fanGroup);
             fans.push(bladePivot);
         }
-        createFan(-15, -30); createFan(15, -30); createFan(-15, -70); createFan(15, -70);
+        createFan(-18, -25); createFan(18, -25); createFan(-18, -75); createFan(18, -75);
 
-        // Furniture Restored
+        // Furniture
         const rackGroup = new THREE.Group();
         const rackFrame = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 18), new THREE.MeshStandardMaterial({color: 0x222}));
         rackFrame.rotation.z = Math.PI/2; rackGroup.add(rackFrame);
@@ -127,7 +133,7 @@
             const shirt = new THREE.Mesh(new THREE.BoxGeometry(1.8, 3.5, 0.6), new THREE.MeshStandardMaterial({color: i%2===0 ? 0xf5f5f5 : 0x1a1a1a}));
             shirt.position.set(-7 + (i*2), -2.5, 0); rackGroup.add(shirt);
         }
-        rackGroup.position.set(-30, 4, -35); rackGroup.rotation.y = Math.PI/2; scene.add(rackGroup);
+        rackGroup.position.set(-32, 4, -35); rackGroup.rotation.y = Math.PI/2; scene.add(rackGroup);
 
         const bookshelf = new THREE.Group();
         const woodMat = new THREE.MeshStandardMaterial({ color: 0x3d2b1f });
@@ -139,7 +145,7 @@
                 book.position.set(-4.5 + (k*1.8), -6.3 + (j*5), 2); bookshelf.add(book);
             }
         }
-        bookshelf.position.set(30, 2, -35); bookshelf.rotation.y = -Math.PI/2; scene.add(bookshelf);
+        bookshelf.position.set(32, 2, -35); bookshelf.rotation.y = -Math.PI/2; scene.add(bookshelf);
 
         const browseTable = new THREE.Mesh(new THREE.BoxGeometry(10, 6, 6), new THREE.MeshStandardMaterial({ color: 0x5C4033 }));
         browseTable.position.set(0, -12, -22); scene.add(browseTable);
@@ -147,17 +153,16 @@
         const counter = new THREE.Mesh(new THREE.BoxGeometry(18, 5, 8), new THREE.MeshStandardMaterial({ color: 0xCC5500 }));
         counter.position.set(0, -6, -46); scene.add(counter);
 
-        // Record Player sits on counter
+        // Record Player & Record
         const recordPlayer = new THREE.Group();
         const pBase = new THREE.Mesh(new THREE.BoxGeometry(5, 1, 4), new THREE.MeshStandardMaterial({color: 0x008080}));
-        turntable = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.2, 32), new THREE.MeshStandardMaterial({color: 0x111111}));
+        turntable = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.2, 32), new THREE.MeshStandardMaterial({color: 0x111}));
         turntable.position.y = 0.6; recordPlayer.add(pBase, turntable);
         recordPlayer.position.set(-5, -3.4, -46); scene.add(recordPlayer);
 
-        // Record (Lambert avoids white glares)
         const record = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 0.05, 64), new THREE.MeshLambertMaterial({ color: 0x000000 }));
         record.position.set(0, -8.95, -22); record.name = "record"; scene.add(record);
-        recordSpotlight = new THREE.SpotLight(0xffffff, 0, 80, 0.3, 0.5, 1);
+        recordSpotlight = new THREE.SpotLight(0xffffff, 0, 100, 0.4, 0.5, 1);
         scene.add(recordSpotlight); recordSpotlight.target = record;
 
         // Clerk
@@ -168,7 +173,7 @@
         armR = new THREE.Group(); armR.position.set(1.2, -3, 0); const rM = new THREE.Mesh(new THREE.CapsuleGeometry(0.25, 1.8, 4, 8), new THREE.MeshStandardMaterial({color: 0x5c4033})); rM.position.y = -0.8; armR.add(rM);
         clerkGroup.add(torso, head, armL, armR); clerkGroup.position.set(0, 0, -52); scene.add(clerkGroup);
 
-        // Text & Signs
+        // Store Font
         const fontLoader = new FontLoader();
         fontLoader.load('https://threejs.org/examples/fonts/helvetiker_bold.typeface.json', (font) => {
             const storeSign = new THREE.Mesh(new TextGeometry('THE HEALING PARADIGM', { font, size: 2.8, height: 0.5 }), new THREE.MeshStandardMaterial({color: 0xffffff}));
@@ -179,10 +184,11 @@
                 const m1 = new THREE.Mesh(tG, new THREE.MeshStandardMaterial({color: 0x9400D3, emissive: 0x9400D3, emissiveIntensity: 2}));
                 g.add(m1); g.position.set(x, y, z); g.rotation.y = rotY; scene.add(g);
             };
-            createNeon('Clothing', -29.5, 10, -35, Math.PI/2);
-            createNeon('Books', 29.5, 12, -35, -Math.PI/2);
+            createNeon('Clothing', -31.5, 10, -35, Math.PI/2);
+            createNeon('Books', 31.5, 12, -35, -Math.PI/2);
         });
 
+        // Events
         window.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('nav-btn')) return;
             mouse.x = (e.clientX/window.innerWidth)*2-1; mouse.y = -(e.clientY/window.innerHeight)*2+1;
@@ -231,11 +237,17 @@
             if (isPlaying) { turntable.rotation.y += 0.1; record.rotation.y += 0.1; }
             fans.forEach(f => f.rotation.y += 0.08);
             confetti.forEach(c => { c.mesh.position.y -= c.speed; });
+            
             if (isDancing) {
-                const t = Date.now() * 0.005; const ph = Math.sin(t); 
-                clerkGroup.position.x = ph * 2;
-                if (ph > 0) { armR.rotation.z = 2.5; armL.rotation.z = 0; } else { armL.rotation.z = 2.5; armR.rotation.z = 0; }
+                const t = Date.now() * 0.005;
+                const ph = Math.sin(t);
+                // Bouncing and Side-to-Side
+                clerkGroup.position.x = ph * 2.5; 
+                clerkGroup.position.y = Math.abs(Math.cos(t * 2)) * 1.5; 
+                if (ph > 0) { armR.rotation.z = 2.5; armL.rotation.z = 0; } 
+                else { armL.rotation.z = 2.5; armR.rotation.z = 0; }
             }
+            
             if (camera.position.z < 0) camera.lookAt(0, -2, -52); else camera.lookAt(0, 5, 0);
             renderer.render(scene, camera);
         }
