@@ -50,82 +50,94 @@
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.outputColorSpace = THREE.SRGBColorSpace;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
         document.body.appendChild(renderer.domElement);
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x020408); // Dark Ambient Twilight
+        scene.background = new THREE.Color(0x02050a); 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
         let currentState = 'outside', recordState = 'table', isDancing = false, isPlaying = false;
-        let armL, armR, head, clerkGroup, recordSpotlight, turntable, fans = [], confetti = [];
+        let armL, armR, torso, head, clerkGroup, recordSpotlight, turntable, fans = [], confetti = [];
 
-        // --- AMBIENT LIGHTING ---
+        // --- GLOBAL LIGHTS ---
         const amb = new THREE.AmbientLight(0xffffff, 0.4); 
         scene.add(amb);
 
-        // --- EXTERIOR ---
-        const buildingGroup = new THREE.Group();
-        const walls = new THREE.Mesh(new THREE.BoxGeometry(60, 35, 10), new THREE.MeshStandardMaterial({ color: 0x89CFF0 }));
-        walls.position.set(0, 10, -3);
-        const roof = new THREE.Mesh(new THREE.BoxGeometry(65, 2, 12), new THREE.MeshStandardMaterial({ color: 0x222222 }));
-        roof.position.set(0, 27.5, -2);
-        const foundation = new THREE.Mesh(new THREE.BoxGeometry(70, 2, 25), new THREE.MeshStandardMaterial({ color: 0x333333 }));
-        foundation.position.set(0, -6.5, 5);
-        
-        const winG = new THREE.BoxGeometry(12, 12, 0.5);
-        const winM = new THREE.MeshStandardMaterial({color: 0x111, transparent: true, opacity: 0.5});
-        const w1 = new THREE.Mesh(winG, winM); w1.position.set(-15, 8, 2.1);
-        const w2 = new THREE.Mesh(winG, winM); w2.position.set(15, 8, 2.1);
-        
-        buildingGroup.add(walls, roof, foundation, w1, w2); 
-        scene.add(buildingGroup);
+        // --- EXTERIOR (PALM TREES FRONT & CENTER) ---
+        function createPalm(x, z) {
+            const p = new THREE.Group();
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.9, 28), new THREE.MeshStandardMaterial({color: 0x664422}));
+            p.add(trunk);
+            for(let i=0; i<10; i++){
+                const l = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 12, 2, 8), new THREE.MeshStandardMaterial({color: 0x1e3f1e}));
+                l.position.y = 14; l.rotation.z = 1.3; l.rotation.y = i * Math.PI/5; p.add(l);
+            }
+            p.position.set(x, 7, z); scene.add(p);
+        }
+        createPalm(-40, 35); createPalm(40, 35); // Positioned to be clearly visible outside
 
         function createStreetLamp(x) {
             const lamp = new THREE.Group();
             const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 15), new THREE.MeshStandardMaterial({color: 0x111}));
-            const lHead = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), new THREE.MeshBasicMaterial({color: 0xffffee}));
-            lHead.position.y = 7.5;
-            const light = new THREE.PointLight(0xffaa00, 300, 30); light.position.y = 7.5;
-            lamp.add(pole, lHead, light); lamp.position.set(x, 0, 12); scene.add(lamp);
+            const head = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), new THREE.MeshBasicMaterial({color: 0xffffee}));
+            head.position.y = 7.5;
+            const light = new THREE.PointLight(0xffaa00, 400, 40); light.position.y = 7.5;
+            lamp.add(pole, head, light); lamp.position.set(x, 0, 30); scene.add(lamp);
         }
-        createStreetLamp(-22); createStreetLamp(22);
+        createStreetLamp(-28); createStreetLamp(28);
 
-        function createPalm(x) {
-            const p = new THREE.Group();
-            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.8, 25), new THREE.MeshStandardMaterial({color: 0x664422}));
-            p.add(trunk);
-            for(let i=0; i<8; i++){
-                const l = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 10, 2, 8), new THREE.MeshStandardMaterial({color: 0x1a4a1a}));
-                l.position.y = 12.5; l.rotation.z = 1.4; l.rotation.y = i * Math.PI/4; p.add(l);
-            }
-            p.position.set(x, 5, 18); scene.add(p);
-        }
-        createPalm(-42); createPalm(42);
+        const buildingGroup = new THREE.Group();
+        const wallMesh = new THREE.Mesh(new THREE.BoxGeometry(60, 35, 10), new THREE.MeshStandardMaterial({ color: 0x89CFF0 }));
+        wallMesh.position.set(0, 10, -3);
+        const roof = new THREE.Mesh(new THREE.BoxGeometry(65, 2, 12), new THREE.MeshStandardMaterial({ color: 0x222 }));
+        roof.position.set(0, 27.5, -2);
+        const foundation = new THREE.Mesh(new THREE.BoxGeometry(70, 2, 25), new THREE.MeshStandardMaterial({ color: 0x333 }));
+        foundation.position.set(0, -6.5, 5);
+        
+        const winG = new THREE.BoxGeometry(14, 14, 0.5);
+        const winM = new THREE.MeshStandardMaterial({color: 0x111, transparent: true, opacity: 0.4});
+        const w1 = new THREE.Mesh(winG, winM); w1.position.set(-16, 8, 2.1);
+        const w2 = new THREE.Mesh(winG, winM); w2.position.set(16, 8, 2.1);
+        buildingGroup.add(wallMesh, roof, foundation, w1, w2); 
+        scene.add(buildingGroup);
 
         const door = new THREE.Mesh(new THREE.PlaneGeometry(8, 16), new THREE.MeshStandardMaterial({ color: 0x111, transparent: true, opacity: 0.6 }));
         door.position.set(0, 5, 2.2); door.name = "door_trigger"; scene.add(door);
 
         // --- INTERIOR ROOM ---
-        const interiorRoom = new THREE.Mesh(new THREE.BoxGeometry(70, 40, 100), new THREE.MeshStandardMaterial({ color: 0x89CFF0, side: THREE.BackSide }));
+        const interiorRoom = new THREE.Mesh(new THREE.BoxGeometry(75, 40, 100), new THREE.MeshStandardMaterial({ color: 0x89CFF0, side: THREE.BackSide }));
         interiorRoom.position.z = -50; interiorRoom.name = "interior_wall"; scene.add(interiorRoom);
 
+        // WARM CEILING LIGHTS
+        function createWarmLight(x, z) {
+            const lightGroup = new THREE.Group();
+            const fixture = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 0.2, 32), new THREE.MeshStandardMaterial({color: 0xeeeeee}));
+            const glow = new THREE.Mesh(new THREE.CircleGeometry(1.3, 32), new THREE.MeshBasicMaterial({color: 0xffe4b5}));
+            glow.rotation.x = Math.PI/2; glow.position.y = -0.11;
+            const pLight = new THREE.PointLight(0xffe4b5, 200, 50); pLight.position.y = -3;
+            lightGroup.add(fixture, glow, pLight);
+            lightGroup.position.set(x, 19.8, z); scene.add(lightGroup);
+        }
+        [ -22, 0, 22 ].forEach(x => { [ -35, -75 ].forEach(z => createWarmLight(x, z)); });
+
+        // PROPELLER FANS (5-Blade Upscale)
         function createFan(x, z) {
             const fanGroup = new THREE.Group();
-            const motor = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.8), new THREE.MeshStandardMaterial({color: 0x222}));
+            const hub = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 1), new THREE.MeshStandardMaterial({color: 0x111, metalness: 0.9}));
             const bladePivot = new THREE.Group();
-            for(let i=0; i<3; i++) { // 3-Blade Modern Fan
-                const blade = new THREE.Mesh(new THREE.BoxGeometry(6, 0.05, 1.5), new THREE.MeshStandardMaterial({color: 0x222}));
-                blade.position.x = 3.5; blade.rotation.y = (i * Math.PI * 2) / 3; bladePivot.add(blade);
+            for(let i=0; i<5; i++) {
+                const blade = new THREE.Mesh(new THREE.BoxGeometry(7, 0.1, 1.8), new THREE.MeshStandardMaterial({color: 0x3d2b1f}));
+                blade.position.x = 4; blade.rotation.y = (i * Math.PI * 2) / 5;
+                bladePivot.add(blade);
             }
-            fanGroup.add(motor, bladePivot); fanGroup.position.set(x, 16, z); scene.add(fanGroup);
+            fanGroup.add(hub, bladePivot); fanGroup.position.set(x, 17, z); scene.add(fanGroup);
             fans.push(bladePivot);
         }
-        createFan(-18, -30); createFan(18, -30); createFan(-18, -75); createFan(18, -75);
+        createFan(-18, -40); createFan(18, -40);
 
-        // Assets
+        // Furniture
         const rackGroup = new THREE.Group();
         const rackFrame = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 18), new THREE.MeshStandardMaterial({color: 0x222}));
         rackFrame.rotation.z = Math.PI/2; rackGroup.add(rackFrame);
@@ -133,11 +145,11 @@
             const shirt = new THREE.Mesh(new THREE.BoxGeometry(1.8, 3.5, 0.6), new THREE.MeshStandardMaterial({color: i%2===0 ? 0xf5f5f5 : 0x1a1a1a}));
             shirt.position.set(-7 + (i*2), -2.5, 0); shirt.name = "coming_soon"; rackGroup.add(shirt);
         }
-        rackGroup.position.set(-32, 4, -35); rackGroup.rotation.y = Math.PI/2; scene.add(rackGroup);
+        rackGroup.position.set(-34, 4, -40); rackGroup.rotation.y = Math.PI/2; scene.add(rackGroup);
 
         const bookshelf = new THREE.Group();
         const woodMat = new THREE.MeshStandardMaterial({ color: 0x3d2b1f });
-        const back = new THREE.Mesh(new THREE.BoxGeometry(12, 20, 1), woodMat); bookshelf.add(back);
+        const shelfBack = new THREE.Mesh(new THREE.BoxGeometry(12, 20, 1), woodMat); bookshelf.add(shelfBack);
         for(let j=0; j<4; j++) {
             const plank = new THREE.Mesh(new THREE.BoxGeometry(12, 0.4, 4), woodMat); plank.position.set(0, -8 + (j*5), 2); bookshelf.add(plank);
             for(let k=0; k<6; k++) {
@@ -145,7 +157,7 @@
                 book.position.set(-4.5 + (k*1.8), -6.3 + (j*5), 2); book.name = "coming_soon"; bookshelf.add(book);
             }
         }
-        bookshelf.position.set(32, 2, -35); bookshelf.rotation.y = -Math.PI/2; scene.add(bookshelf);
+        bookshelf.position.set(34, 2, -40); bookshelf.rotation.y = -Math.PI/2; scene.add(bookshelf);
 
         const browseTable = new THREE.Mesh(new THREE.BoxGeometry(10, 6, 6), new THREE.MeshStandardMaterial({ color: 0x5C4033 }));
         browseTable.position.set(0, -12, -22); scene.add(browseTable);
@@ -164,9 +176,10 @@
         recordSpotlight = new THREE.SpotLight(0xffffff, 0, 100, 0.4, 0.5, 1);
         scene.add(recordSpotlight); recordSpotlight.target = record;
 
+        // CLERK
         clerkGroup = new THREE.Group();
         head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 16), new THREE.MeshStandardMaterial({color: 0x5c4033})); head.position.y = -1.6;
-        const torso = new THREE.Mesh(new THREE.CapsuleGeometry(1, 2.5, 4, 8), new THREE.MeshStandardMaterial({color: 0x333333})); torso.position.y = -3.8;
+        torso = new THREE.Mesh(new THREE.CapsuleGeometry(1, 2.5, 4, 8), new THREE.MeshStandardMaterial({color: 0x333333})); torso.position.y = -3.8;
         armL = new THREE.Group(); armL.position.set(-1.2, -3, 0); const lM = new THREE.Mesh(new THREE.CapsuleGeometry(0.25, 1.8, 4, 8), new THREE.MeshStandardMaterial({color: 0x5c4033})); lM.position.y = -0.8; armL.add(lM);
         armR = new THREE.Group(); armR.position.set(1.2, -3, 0); const rM = new THREE.Mesh(new THREE.CapsuleGeometry(0.25, 1.8, 4, 8), new THREE.MeshStandardMaterial({color: 0x5c4033})); rM.position.y = -0.8; armR.add(rM);
         clerkGroup.add(torso, head, armL, armR); clerkGroup.position.set(0, 0, -52); scene.add(clerkGroup);
@@ -180,13 +193,13 @@
                 const m1 = new THREE.Mesh(tG, new THREE.MeshStandardMaterial({color: 0x9400D3, emissive: 0x9400D3, emissiveIntensity: 2}));
                 m1.position.set(x, y, z); m1.rotation.y = rotY; m1.name = "coming_soon"; scene.add(m1);
             };
-            createNeon('Clothing', -31.5, 10, -35, Math.PI/2);
-            createNeon('Books', 31.5, 12, -35, -Math.PI/2);
+            createNeon('Clothing', -33.5, 10, -40, Math.PI/2);
+            createNeon('Books', 33.5, 12, -40, -Math.PI/2);
         });
 
         const resetToOutside = () => {
             currentState = 'outside';
-            new TWEEN.Tween(camera.position).to({ x: 0, y: 10, z: 60 }, 1500).easing(TWEEN.Easing.Quadratic.Out).start();
+            new TWEEN.Tween(camera.position).to({ x: 0, y: 10, z: 75 }, 1500).easing(TWEEN.Easing.Quadratic.Out).start();
             document.getElementById('back-btn').style.display = 'none'; document.getElementById('reset-btn').style.display = 'none';
             document.getElementById('buy-btn').style.display = 'none'; document.getElementById('wallet-btn').style.display = 'none';
             document.getElementById('ui-text').innerText = "CLICK THE DOOR TO ENTER";
@@ -203,7 +216,6 @@
                     currentState = 'inside';
                     new TWEEN.Tween(camera.position).to({ z: -5, y: -0.5 }, 1200).start();
                     document.getElementById('back-btn').style.display = 'block'; document.getElementById('reset-btn').style.display = 'block';
-                    document.getElementById('ui-text').innerText = "BROWSE THE SHOP";
                 } else if (obj.name === "interior_wall") {
                     resetToOutside();
                 } else if (obj.name === "coming_soon") {
@@ -239,7 +251,7 @@
             }
         });
 
-        camera.position.set(0, 10, 60);
+        camera.position.set(0, 10, 75);
 
         function animate() {
             requestAnimationFrame(animate); TWEEN.update();
@@ -247,13 +259,18 @@
             if (isPlaying) { turntable.rotation.y += 0.1; record.rotation.y += 0.1; }
             fans.forEach(f => f.rotation.y += 0.12);
             confetti.forEach(c => { c.mesh.position.y -= c.speed; });
+            
             if (isDancing) {
                 const t = Date.now() * 0.005;
                 const ph = Math.sin(t);
                 clerkGroup.position.x = ph * 2.5; 
-                clerkGroup.position.y = Math.abs(Math.cos(t * 2)) * 1.5; 
-                if (ph > 0) { armR.rotation.z = 2.5; armL.rotation.z = 0; } else { armL.rotation.z = 2.5; armR.rotation.z = 0; }
+                clerkGroup.position.y = Math.abs(Math.cos(t * 2)) * 1.5;
+                // Torso Rotation Adjustment
+                clerkGroup.rotation.y = ph * 0.4; 
+                if (ph > 0) { armR.rotation.z = 2.5; armL.rotation.z = 0; } 
+                else { armL.rotation.z = 2.5; armR.rotation.z = 0; }
             }
+            
             if (camera.position.z < 0) camera.lookAt(0, -2, -52); else camera.lookAt(0, 5, 0);
             renderer.render(scene, camera);
         }
