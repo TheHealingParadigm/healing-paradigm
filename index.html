@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Healing Paradigm - Stable Build</title>
+    <title>The Healing Paradigm - Clean Interior</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', monospace; }
         #ui-container { position: absolute; bottom: 40px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 100; pointer-events: none; }
@@ -52,11 +52,11 @@
         const mouse = new THREE.Vector2();
 
         let currentState = 'outside', recordState = 'table', isDancing = false;
-        let record, recordSpot, clerk, armL, armR, windowTint, starTex, confetti = [];
+        let record, recordSpot, clerk, armL, armR, windowTint, confetti = [];
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        scene.add(new THREE.AmbientLight(0xffffff, 0.9));
 
-        // --- EXTERIOR ELEMENTS ---
+        // --- EXTERIOR (KEEPING YOUR WORKING ASSETS) ---
         const blueMat = new THREE.MeshStandardMaterial({ color: 0x89CFF0 });
         const building = new THREE.Mesh(new THREE.BoxGeometry(85, 50, 10), blueMat);
         building.position.set(0, 15, -10); scene.add(building);
@@ -64,13 +64,11 @@
         const door = new THREE.Mesh(new THREE.BoxGeometry(10, 18, 2), blueMat);
         door.position.set(0, 4.5, -2); door.name = "door_trigger"; scene.add(door);
 
-        // Windows
         const winGeo = new THREE.BoxGeometry(15, 15, 0.5);
         const winMat = new THREE.MeshStandardMaterial({color: 0x111, metalness: 0.9});
         const wL = new THREE.Mesh(winGeo, winMat); wL.position.set(-22, 12, -4); scene.add(wL);
         const wR = new THREE.Mesh(winGeo, winMat); wR.position.set(22, 12, -4); scene.add(wR);
 
-        // Palms
         function makePalm(x) {
             const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, 30), new THREE.MeshStandardMaterial({color: 0x664422}));
             const lv = new THREE.Group(); lv.position.y = 15;
@@ -82,24 +80,15 @@
         }
         makePalm(-55); makePalm(55);
 
-        // Sidewalk Lamps
-        function makeLamp(x) {
-            const g = new THREE.Group();
-            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 18), new THREE.MeshStandardMaterial({color: 0x111}));
-            const bulb = new THREE.Mesh(new THREE.SphereGeometry(1), new THREE.MeshBasicMaterial({color: 0xffffaa}));
-            bulb.position.y = 9; const pl = new THREE.PointLight(0xffaa00, 500, 50); pl.position.y = 9;
-            g.add(pole, bulb, pl); g.position.set(x, 2, 25); scene.add(g);
-        }
-        makeLamp(-38); makeLamp(38);
-
         windowTint = new THREE.Mesh(new THREE.PlaneGeometry(85, 50), new THREE.MeshBasicMaterial({color: 0x000, transparent: true, opacity: 0.97}));
         windowTint.position.z = -3.5; scene.add(windowTint);
 
-        // --- INTERIOR: GALAXY ---
-        starTex = new THREE.TextureLoader().load('https://threejs.org/examples/textures/disturb.jpg'); 
-        starTex.wrapS = starTex.wrapT = THREE.RepeatWrapping; starTex.repeat.set(4, 4);
-        const galaxy = new THREE.Mesh(new THREE.BoxGeometry(100, 60, 130), new THREE.MeshStandardMaterial({ map: starTex, side: THREE.BackSide, emissive: 0x050515 }));
-        galaxy.position.z = -70; galaxy.name = "wall_exit"; scene.add(galaxy);
+        // --- INTERIOR (WALLPAPER REMOVED - SOLID DARK WALLS) ---
+        const interiorWalls = new THREE.Mesh(
+            new THREE.BoxGeometry(100, 60, 130), 
+            new THREE.MeshStandardMaterial({ color: 0x050505, side: THREE.BackSide })
+        );
+        interiorWalls.position.z = -70; interiorWalls.name = "wall_exit"; scene.add(interiorWalls);
 
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 130), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1 }));
         floor.rotation.x = -Math.PI/2; floor.position.set(0, -5.4, -70); scene.add(floor);
@@ -116,8 +105,8 @@
 
         clerk = new THREE.Group();
         const cBody = new THREE.Mesh(new THREE.CapsuleGeometry(1.5, 6), new THREE.MeshStandardMaterial({color: 0x222})); cBody.position.y = 5.5;
-        armL = new THREE.Group(); armL.position.set(-1.8, 8, 0); const a1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.35, 3.5), new THREE.MeshStandardMaterial({color: 0x5c4033})); a1.position.y = -1.75; armL.add(a1);
-        armR = new THREE.Group(); armR.position.set(1.8, 8, 0); const a2 = new THREE.Mesh(new THREE.CapsuleGeometry(0.35, 3.5), new THREE.MeshStandardMaterial({color: 0x5c4033})); a2.position.y = -1.75; armR.add(a2);
+        armL = new THREE.Group(); armL.position.set(-1.8, 8, 0); const a1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 3.5), new THREE.MeshStandardMaterial({color: 0x5c4033})); a1.position.y = -1.75; armL.add(a1);
+        armR = new THREE.Group(); armR.position.set(1.8, 8, 0); const a2 = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 3.5), new THREE.MeshStandardMaterial({color: 0x5c4033})); a2.position.y = -1.75; armR.add(a2);
         clerk.add(cBody, armL, armR); clerk.position.set(0, -5, -85); scene.add(clerk);
 
         // --- NAVIGATION & LOGIC ---
@@ -134,7 +123,6 @@
             raycaster.setFromCamera(mouse, camera);
             const hits = raycaster.intersectObjects(scene.children, true);
             if (hits.length > 0) {
-                // Priority Check: Is it the record?
                 const recordHit = hits.find(h => h.object.name === "record");
                 const doorHit = hits.find(h => h.object.name === "door_trigger");
                 const wallHit = hits.find(h => h.object.name === "wall_exit");
@@ -142,12 +130,12 @@
                 if (recordHit) {
                     if (recordState === 'table') {
                         recordState = 'view';
-                        new TWEEN.Tween(record.position).to({y: 4, z: -10}, 800).start();
+                        new TWEEN.Tween(record.position).to({y: 4.5, z: -12}, 800).start();
                         new TWEEN.Tween(record.rotation).to({x: Math.PI/2}, 800).start();
                         new TWEEN.Tween(recordSpot).to({intensity: 6000}, 400).start();
                     } else if (recordState === 'view') {
                         recordState = 'checkout';
-                        new TWEEN.Tween(record.position).to({x: 6, y: 3.8, z: -75}, 800).start();
+                        new TWEEN.Tween(record.position).to({x: 7, y: 3.5, z: -75}, 800).start();
                         new TWEEN.Tween(record.rotation).to({x: 0}, 800).start();
                         new TWEEN.Tween(camera.position).to({z: -55, y: 6}, 1000).start();
                         recordSpot.intensity = 0;
@@ -159,7 +147,9 @@
                     new TWEEN.Tween(camera.position).to({z: -5, y: 3.5}, 1000).start();
                     new TWEEN.Tween(windowTint.material).to({opacity: 0}, 500).start();
                     document.getElementById('back-btn').style.display = 'block';
-                } else if (wallHit && currentState === 'inside') { exit(); }
+                } else if (wallHit && currentState === 'inside' && recordState !== 'view') { 
+                    exit(); 
+                }
             }
         });
 
@@ -180,7 +170,6 @@
             requestAnimationFrame(animate); TWEEN.update();
             const t = Date.now() * 0.003;
             confetti.forEach(c => { if(c.m.position.y > -5) c.m.position.y -= c.s; });
-            starTex.offset.x += 0.0001;
 
             if (isDancing) {
                 clerk.position.y = -5 + Math.abs(Math.sin(t*5)) * 1.5;
