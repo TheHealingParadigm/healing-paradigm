@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Healing Paradigm - The Smeez Update</title>
+    <title>The Healing Paradigm - Smeez Master Build</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', monospace; }
         #ui { position: absolute; bottom: 30px; width: 100%; text-align: center; z-index: 10; pointer-events: none; }
@@ -66,6 +66,16 @@
         const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(160, 1, 45), new THREE.MeshStandardMaterial({color: 0x444}));
         sidewalk.position.set(0, -5, 15); scene.add(sidewalk);
 
+        // SIDEWALK LIGHTS
+        function addStreetLight(x) {
+            const g = new THREE.Group();
+            const p = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 22), new THREE.MeshStandardMaterial({color: 0x111}));
+            const b = new THREE.Mesh(new THREE.SphereGeometry(1.5), new THREE.MeshBasicMaterial({color: 0xffffaa}));
+            b.position.y = 11; const l = new THREE.PointLight(0xffaa00, 1500, 60); l.position.y = 11;
+            g.add(p, b, l); g.position.set(x, 5, 25); scene.add(g);
+        }
+        addStreetLight(-45); addStreetLight(45);
+
         function addPalm(x) {
             const p = new THREE.Group();
             const t = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.2, 35), new THREE.MeshStandardMaterial({color: 0x664422}));
@@ -113,6 +123,7 @@
             step = 0; dancing = false;
             new TWEEN.Tween(camera.position).to({x:0, y:15, z:110}, 1000).start();
             record.position.set(0, 1.1, -45); record.rotation.set(0,0,0);
+            clerk.position.x = 0; clerk.rotation.y = 0;
             spot.intensity = 0;
             document.querySelectorAll('.btn').forEach(b => b.style.display = 'none');
             document.getElementById('reset-btn').style.display = 'inline-block';
@@ -148,10 +159,9 @@
         document.getElementById('buy-btn').addEventListener('click', () => {
             dancing = true;
             new Audio('https://www.myinstants.com/media/sounds/ka-ching.mp3').play();
-            // Drop confetti SPECIFICALLY in front of register
-            for(let i=0; i<60; i++) {
+            for(let i=0; i<80; i++) {
                 const c = new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.5), new THREE.MeshBasicMaterial({color: Math.random()*0xffffff, side: 2}));
-                c.position.set(6 + (Math.random()*6-3), 25, -85 + (Math.random()*4-2)); 
+                c.position.set(Math.random()*20-10, 25, -85); 
                 scene.add(c);
                 confetti.push(c);
             }
@@ -162,20 +172,22 @@
 
         function animate() {
             requestAnimationFrame(animate); TWEEN.update();
-            const t = Date.now() * 0.005; // Slightly faster dance speed
+            const t = Date.now() * 0.005; 
             confetti.forEach(c => { if(c.position.y > -5) c.position.y -= 0.25; });
             
             if (dancing) {
-                // CORRECT SMEEZ MOVE: Side-to-side slide + High/Low arm switch
-                clerk.position.y = -5 + Math.abs(Math.sin(t*5)) * 2; // Bounce
-                clerk.position.x = Math.sin(t*2.5) * 5; // Wide Slide
-                
-                if (Math.sin(t*2.5) > 0) { 
-                    // Sliding Right: Right arm low, Left arm high
-                    armL.rotation.z = 2.4; armR.rotation.z = 0.2; 
+                // THE SMEEZ: Bounce + Wide Slide + Torso Rotation + Alternating High Arms
+                clerk.position.y = -5 + Math.abs(Math.sin(t*5)) * 2; 
+                const slideDir = Math.sin(t*2.5);
+                clerk.position.x = slideDir * 6; 
+                clerk.rotation.y = slideDir * 0.5; // Turn torso to face direction
+
+                if (slideDir > 0) { 
+                    // Sliding Right: Lift Left arm high
+                    armL.rotation.z = 2.5; armR.rotation.z = 0.3; 
                 } else { 
-                    // Sliding Left: Left arm low, Right arm high
-                    armR.rotation.z = -2.4; armL.rotation.z = -0.2; 
+                    // Sliding Left: Lift Right arm high
+                    armR.rotation.z = -2.5; armL.rotation.z = -0.3; 
                 }
             }
             camera.lookAt(0, 0, camera.position.z > 0 ? 0 : -120);
