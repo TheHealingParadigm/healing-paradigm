@@ -59,24 +59,29 @@
         const mouse = new THREE.Vector2();
 
         let currentState = 'outside', recordState = 'table', isDancing = false, isPlaying = false;
-        let armL, armR, torso, head, clerkGroup, recordSpotlight, turntable, fans = [], confetti = [];
+        let armL, armR, torso, head, clerkGroup, recordSpotlight, turntable, fans = [], palms = [], confetti = [];
 
         // --- GLOBAL LIGHTS ---
         const amb = new THREE.AmbientLight(0xffffff, 0.4); 
         scene.add(amb);
 
-        // --- EXTERIOR (PALM TREES FRONT & CENTER) ---
+        // --- EXTERIOR ---
         function createPalm(x, z) {
             const p = new THREE.Group();
             const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.9, 28), new THREE.MeshStandardMaterial({color: 0x664422}));
             p.add(trunk);
+            const leafGroup = new THREE.Group();
+            leafGroup.position.y = 14;
             for(let i=0; i<10; i++){
                 const l = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 12, 2, 8), new THREE.MeshStandardMaterial({color: 0x1e3f1e}));
-                l.position.y = 14; l.rotation.z = 1.3; l.rotation.y = i * Math.PI/5; p.add(l);
+                l.rotation.z = 1.3; l.rotation.y = i * Math.PI/5; 
+                leafGroup.add(l);
             }
-            p.position.set(x, 7, z); scene.add(p);
+            p.add(leafGroup); p.position.set(x, 7, z); 
+            scene.add(p);
+            palms.push(leafGroup);
         }
-        createPalm(-40, 35); createPalm(40, 35); // Positioned to be clearly visible outside
+        createPalm(-40, 35); createPalm(40, 35);
 
         function createStreetLamp(x) {
             const lamp = new THREE.Group();
@@ -96,6 +101,13 @@
         const foundation = new THREE.Mesh(new THREE.BoxGeometry(70, 2, 25), new THREE.MeshStandardMaterial({ color: 0x333 }));
         foundation.position.set(0, -6.5, 5);
         
+        // Stairs
+        for(let i=0; i<3; i++) {
+            const step = new THREE.Mesh(new THREE.BoxGeometry(12, 1, 4 - i), new THREE.MeshStandardMaterial({color: 0x444}));
+            step.position.set(0, -5.5 + i, 15 - (i * 2));
+            buildingGroup.add(step);
+        }
+
         const winG = new THREE.BoxGeometry(14, 14, 0.5);
         const winM = new THREE.MeshStandardMaterial({color: 0x111, transparent: true, opacity: 0.4});
         const w1 = new THREE.Mesh(winG, winM); w1.position.set(-16, 8, 2.1);
@@ -106,7 +118,7 @@
         const door = new THREE.Mesh(new THREE.PlaneGeometry(8, 16), new THREE.MeshStandardMaterial({ color: 0x111, transparent: true, opacity: 0.6 }));
         door.position.set(0, 5, 2.2); door.name = "door_trigger"; scene.add(door);
 
-        // --- INTERIOR ROOM ---
+        // --- INTERIOR ---
         const interiorRoom = new THREE.Mesh(new THREE.BoxGeometry(75, 40, 100), new THREE.MeshStandardMaterial({ color: 0x89CFF0, side: THREE.BackSide }));
         interiorRoom.position.z = -50; interiorRoom.name = "interior_wall"; scene.add(interiorRoom);
 
@@ -122,22 +134,23 @@
         }
         [ -22, 0, 22 ].forEach(x => { [ -35, -75 ].forEach(z => createWarmLight(x, z)); });
 
-        // PROPELLER FANS (5-Blade Upscale)
+        // NEW ORBITAL FANS (3 Wide Blades)
         function createFan(x, z) {
             const fanGroup = new THREE.Group();
-            const hub = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 1), new THREE.MeshStandardMaterial({color: 0x111, metalness: 0.9}));
+            const hub = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 0.8, 32), new THREE.MeshStandardMaterial({color: 0x222}));
             const bladePivot = new THREE.Group();
-            for(let i=0; i<5; i++) {
-                const blade = new THREE.Mesh(new THREE.BoxGeometry(7, 0.1, 1.8), new THREE.MeshStandardMaterial({color: 0x3d2b1f}));
-                blade.position.x = 4; blade.rotation.y = (i * Math.PI * 2) / 5;
+            for(let i=0; i<3; i++) {
+                const blade = new THREE.Mesh(new THREE.BoxGeometry(9, 0.1, 3), new THREE.MeshStandardMaterial({color: 0x222}));
+                blade.position.x = 5; blade.rotation.y = (i * Math.PI * 2) / 3;
+                blade.rotation.x = 0.2; // Pitch
                 bladePivot.add(blade);
             }
             fanGroup.add(hub, bladePivot); fanGroup.position.set(x, 17, z); scene.add(fanGroup);
             fans.push(bladePivot);
         }
-        createFan(-18, -40); createFan(18, -40);
+        createFan(-18, -45); createFan(18, -45);
 
-        // Furniture
+        // Assets
         const rackGroup = new THREE.Group();
         const rackFrame = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 18), new THREE.MeshStandardMaterial({color: 0x222}));
         rackFrame.rotation.z = Math.PI/2; rackGroup.add(rackFrame);
@@ -176,7 +189,6 @@
         recordSpotlight = new THREE.SpotLight(0xffffff, 0, 100, 0.4, 0.5, 1);
         scene.add(recordSpotlight); recordSpotlight.target = record;
 
-        // CLERK
         clerkGroup = new THREE.Group();
         head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 16), new THREE.MeshStandardMaterial({color: 0x5c4033})); head.position.y = -1.6;
         torso = new THREE.Mesh(new THREE.CapsuleGeometry(1, 2.5, 4, 8), new THREE.MeshStandardMaterial({color: 0x333333})); torso.position.y = -3.8;
@@ -255,6 +267,14 @@
 
         function animate() {
             requestAnimationFrame(animate); TWEEN.update();
+            const time = Date.now() * 0.001;
+            
+            // Swaying Palms
+            palms.forEach((leafGroup, index) => {
+                leafGroup.rotation.x = Math.sin(time + index) * 0.05;
+                leafGroup.rotation.z = Math.cos(time * 0.5 + index) * 0.03;
+            });
+
             if (recordState === 'view') { recordSpotlight.position.set(record.position.x, record.position.y + 10, record.position.z + 10); }
             if (isPlaying) { turntable.rotation.y += 0.1; record.rotation.y += 0.1; }
             fans.forEach(f => f.rotation.y += 0.12);
@@ -265,7 +285,6 @@
                 const ph = Math.sin(t);
                 clerkGroup.position.x = ph * 2.5; 
                 clerkGroup.position.y = Math.abs(Math.cos(t * 2)) * 1.5;
-                // Torso Rotation Adjustment
                 clerkGroup.rotation.y = ph * 0.4; 
                 if (ph > 0) { armR.rotation.z = 2.5; armL.rotation.z = 0; } 
                 else { armL.rotation.z = 2.5; armR.rotation.z = 0; }
