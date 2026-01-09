@@ -51,6 +51,7 @@
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.toneMapping = THREE.ReinhardToneMapping; // Better light handling
         document.body.appendChild(renderer.domElement);
 
         const raycaster = new THREE.Raycaster();
@@ -61,62 +62,34 @@
         // --- LIGHTING ---
         ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(ambientLight);
-        mainLight = new THREE.PointLight(0xffffff, 100);
+        mainLight = new THREE.PointLight(0xffffff, 120);
         mainLight.position.set(0, 5, -15);
         scene.add(mainLight);
 
-        recordSpotlight = new THREE.SpotLight(0xffffff, 0); // Original white spotlight
-        recordSpotlight.angle = 0.4;
-        recordSpotlight.penumbra = 0.3;
+        // High-Intensity Spotlight for Reflection
+        recordSpotlight = new THREE.SpotLight(0xffffff, 0);
+        recordSpotlight.angle = 0.5;
+        recordSpotlight.penumbra = 0.2;
+        recordSpotlight.decay = 1;
         scene.add(recordSpotlight);
 
-        // --- EXTERIOR (Boutique Style) ---
-        // Building main face - Baby Blue
+        // --- EXTERIOR (Boutique) ---
         const facade = new THREE.Mesh(new THREE.PlaneGeometry(80, 45), new THREE.MeshStandardMaterial({ color: 0x89CFF0 }));
         facade.position.z = 0; scene.add(facade);
-
-        // Large White Architectural Frame
         const whiteTrim = new THREE.Mesh(new THREE.BoxGeometry(32, 18, 1.2), new THREE.MeshStandardMaterial({color: 0xffffff}));
         whiteTrim.position.set(0, 2, 0.5); scene.add(whiteTrim);
-
-        // Large Glass Windows (Blueish tint)
         const windowGeo = new THREE.PlaneGeometry(12, 14);
         const windowMat = new THREE.MeshStandardMaterial({color: 0xADD8E6, transparent: true, opacity: 0.3});
         const winL = new THREE.Mesh(windowGeo, windowMat); winL.position.set(-8, 2, 1.2); scene.add(winL);
         const winR = new THREE.Mesh(windowGeo, windowMat); winR.position.set(8, 2, 1.2); scene.add(winR);
-
-        // Dark Door Inset
         const door = new THREE.Mesh(new THREE.PlaneGeometry(6, 11), new THREE.MeshStandardMaterial({ color: 0x222, transparent: true, opacity: 0.6 }));
         door.position.set(0, 0.5, 1.2); door.name = "door"; scene.add(door);
-
-        // Concrete Sidewalk
         const walk = new THREE.Mesh(new THREE.PlaneGeometry(100, 30), new THREE.MeshStandardMaterial({color: 0xbbbbbb}));
         walk.rotation.x = -Math.PI/2; walk.position.y = -8; scene.add(walk);
-
-        function createPalm(x) {
-            const p = new THREE.Group();
-            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 16), new THREE.MeshStandardMaterial({color: 0x664422}));
-            p.add(trunk);
-            for(let i=0; i<8; i++){
-                const l = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 7, 2, 8), new THREE.MeshStandardMaterial({color: 0x228B22}));
-                l.position.y = 8; l.rotation.z = 1.4; l.rotation.y = i * Math.PI/4; p.add(l);
-            }
-            p.position.set(x, 0, 8); scene.add(p);
-        }
-        createPalm(-25); createPalm(25);
 
         // --- INTERIOR ---
         const room = new THREE.Mesh(new THREE.BoxGeometry(60, 25, 100), new THREE.MeshStandardMaterial({ color: 0x89CFF0, side: THREE.BackSide }));
         room.position.z = -50; scene.add(room);
-
-        // Interior Lights
-        const createFixture = (x, z) => {
-            const ring = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.1, 16, 32), new THREE.MeshBasicMaterial({color: 0xffffff}));
-            ring.rotation.x = Math.PI/2; ring.position.set(x, 11.5, z);
-            const light = new THREE.PointLight(0xffffff, 30, 25); light.position.set(x, 10, z);
-            scene.add(ring, light);
-        };
-        [[-10, -25], [10, -25], [-10, -45], [10, -45]].forEach(p => createFixture(p[0], p[1]));
 
         const table = new THREE.Mesh(new THREE.BoxGeometry(8, 1.5, 5), new THREE.MeshStandardMaterial({ color: 0x5C4033 }));
         table.position.set(0, -6.5, -20); scene.add(table);
@@ -124,30 +97,28 @@
         const counter = new THREE.Mesh(new THREE.BoxGeometry(14, 3, 6), new THREE.MeshStandardMaterial({ color: 0xCC5500 }));
         counter.position.set(0, -5, -45); scene.add(counter);
 
-        const record = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 0.05, 32), new THREE.MeshStandardMaterial({ color: 0x000 }));
+        // Glossy Record Material
+        const recordMat = new THREE.MeshPhysicalMaterial({ 
+            color: 0x050505, 
+            roughness: 0.1, 
+            metalness: 0.5,
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.1
+        });
+        const record = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 0.05, 64), recordMat);
         record.position.set(0, -5.7, -20); record.name = "record"; scene.add(record);
 
-        const createFan = (x, z) => {
-            const g = new THREE.Group();
-            for(let i=0; i<4; i++) {
-                const b = new THREE.Mesh(new THREE.BoxGeometry(7, 0.1, 1), new THREE.MeshStandardMaterial({color: 0x3d2b1f}));
-                b.position.x = 3.5; const p = new THREE.Group(); p.rotation.y = i * Math.PI/2; p.add(b); g.add(p);
-            }
-            g.position.set(x, 11, z); scene.add(g); fans.push(g);
-        };
-        [[-10, -28], [10, -28], [-10, -48], [10, -48]].forEach(p => createFan(p[0], p[1]));
-
-        // --- CLERK WITH BLUE BUCKET HAT ---
+        // --- CLERK WITH BLUE DAD HAT ---
         clerkGroup = new THREE.Group();
         const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.8, 1.8, 4, 8), new THREE.MeshStandardMaterial({color: 0x89CFF0})); body.position.y = -3.5;
         const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), new THREE.MeshStandardMaterial({color: 0xffdbac})); head.position.y = -1.6;
         
-        // Blue Bucket Hat (Flap Down)
-        const hat = new THREE.Group();
-        const hatTop = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.55, 0.5), new THREE.MeshStandardMaterial({color: 0x0000FF}));
-        const hatBrim = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.6, 0.5, 32, 1, true), new THREE.MeshStandardMaterial({color: 0x0000FF, side: 2}));
-        hatBrim.position.y = -0.3; hat.add(hatTop, hatBrim);
-        hat.position.y = -1.0; clerkGroup.add(hat);
+        // Dad Hat (Low Profile)
+        const dadHat = new THREE.Group();
+        const cap = new THREE.Mesh(new THREE.SphereGeometry(0.62, 16, 16, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({color: 0x0000FF}));
+        const brim = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 0.7, 4, 8), new THREE.MeshStandardMaterial({color: 0x0000FF}));
+        brim.rotation.x = Math.PI/2.2; brim.position.set(0, 0, 0.4); 
+        dadHat.add(cap, brim); dadHat.position.y = -1.55; clerkGroup.add(dadHat);
 
         armL = new THREE.Group(); armL.position.set(-1.0, -2.5, 0); const lM = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 1.2, 4, 8), new THREE.MeshStandardMaterial({color: 0x89CFF0})); lM.position.y = 0.6; armL.add(lM);
         armR = new THREE.Group(); armR.position.set(1.0, -2.5, 0); const rM = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 1.2, 4, 8), new THREE.MeshStandardMaterial({color: 0x89CFF0})); rM.position.y = 0.6; armR.add(rM);
@@ -157,11 +128,9 @@
         loader.load('https://threejs.org/examples/fonts/gentilis_bold.typeface.json', (font) => {
             const txt = new THREE.Mesh(new TextGeometry('THE HEALING PARADIGM', { font, size: 2.0, height: 0.3 }), new THREE.MeshStandardMaterial({color: 0xffffff}));
             txt.geometry.center(); txt.position.set(0, 14, 1.5); scene.add(txt);
-            const hTxt = new THREE.Mesh(new TextGeometry('THP', { font, size: 0.18, height: 0.05 }), new THREE.MeshStandardMaterial({color: 0xffffff}));
-            hTxt.geometry.center(); hTxt.position.set(0, -0.9, 0.5); clerkGroup.add(hTxt);
+            const hTxt = new THREE.Mesh(new TextGeometry('THP', { font, size: 0.12, height: 0.05 }), new THREE.MeshStandardMaterial({color: 0xffffff}));
+            hTxt.geometry.center(); hTxt.position.set(0, -1.2, 0.45); clerkGroup.add(hTxt);
         });
-
-        camera.position.set(0, 0, 45);
 
         // --- INTERACTION ---
         window.addEventListener('mousedown', (e) => {
@@ -179,57 +148,41 @@
                 } else if (obj.name === "record") {
                     if (recordState === 'table') {
                         recordState = 'floating';
-                        new TWEEN.Tween(ambientLight).to({ intensity: 0.1 }, 500).start();
-                        recordSpotlight.position.set(0, 6, -10); recordSpotlight.target = record;
-                        new TWEEN.Tween(recordSpotlight).to({ intensity: 700 }, 500).start();
-                        new TWEEN.Tween(record.position).to({ y: -0.5, z: -14 }, 800).start();
+                        new TWEEN.Tween(ambientLight).to({ intensity: 0.05 }, 500).start();
+                        // Position Spotlight to hit the record from an angle for reflection
+                        recordSpotlight.position.set(2, 6, -5); 
+                        recordSpotlight.target = record;
+                        new TWEEN.Tween(recordSpotlight).to({ intensity: 1200 }, 500).start();
+                        // BRING CLOSER: z moved from -14 to -9
+                        new TWEEN.Tween(record.position).to({ y: -0.5, z: -9 }, 800).start();
                         new TWEEN.Tween(record.rotation).to({ x: Math.PI / 2 }, 800).start();
                     } else if (recordState === 'floating') {
                         recordState = 'counter'; currentState = 'checkout';
                         new TWEEN.Tween(ambientLight).to({ intensity: 0.8 }, 500).start();
                         new TWEEN.Tween(recordSpotlight).to({ intensity: 0 }, 500).start();
-                        // Positioned on top of counter, in front of clerk (not in him)
                         new TWEEN.Tween(record.position).to({ x: 0, y: -3.45, z: -46 }, 1000).start();
                         new TWEEN.Tween(record.rotation).to({ x: 0 }, 1000).start();
-                        // Camera pulled back further (z: -30) to see counter and clerk clearly
-                        new TWEEN.Tween(camera.position).to({ z: -30, y: 1 }, 1200).start();
+                        new TWEEN.Tween(camera.position).to({ z: -32, y: 1 }, 1200).start();
                         setTimeout(() => { document.getElementById('buy-btn').style.display = 'block'; document.getElementById('wallet-btn').style.display = 'block'; }, 1000);
                     }
                 }
             }
         });
 
-        const celebrate = () => {
-            isDancing = true;
-            new Audio('https://www.myinstants.com/media/sounds/ka-ching.mp3').play();
-            const colors = [0xFFD700, 0x800080, 0xFF8C00, 0x0000FF];
-            for(let i=0; i<150; i++) {
-                const p = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 0.35), new THREE.MeshBasicMaterial({color: colors[i%4], side: 2}));
-                p.position.set(Math.random()*12-6, 10, -42 - Math.random()*5); scene.add(p);
-                confetti.push({mesh: p, speed: Math.random()*0.07+0.04, landed: false});
-            }
-        };
-
-        document.getElementById('buy-btn').addEventListener('click', celebrate);
-        document.getElementById('wallet-btn').addEventListener('click', celebrate);
+        document.getElementById('buy-btn').addEventListener('click', () => isDancing = true);
         document.getElementById('reset-btn').addEventListener('click', () => location.reload());
+
+        camera.position.set(0, 0, 45);
 
         function animate() {
             requestAnimationFrame(animate); TWEEN.update();
-            fans.forEach(f => f.rotation.y += 0.2);
             if (isDancing) {
                 const t = Date.now() * 0.002;
                 const shift = Math.sin(t * 3); clerkGroup.position.x = shift * 0.8;
-                clerkGroup.rotation.y = shift * 0.4; clerkGroup.position.y = Math.abs(Math.sin(t * 6)) * 0.3;
-                if (shift > 0) { armL.rotation.z = Math.sin(t * 8) * 1.5; armR.rotation.z = 0.2; } 
-                else { armR.rotation.z = -Math.sin(t * 8) * 1.5; armL.rotation.z = -0.2; }
+                clerkGroup.position.y = Math.abs(Math.sin(t * 6)) * 0.3;
+                armL.rotation.z = shift > 0 ? Math.sin(t * 8) * 1.5 : -0.2;
+                armR.rotation.z = shift < 0 ? -Math.sin(t * 8) * 1.5 : 0.2;
             }
-            confetti.forEach(c => {
-                if (!c.landed) {
-                    c.mesh.position.y -= c.speed;
-                    if (c.mesh.position.y <= -7.8) { c.mesh.position.y = -7.8; c.landed = true; }
-                }
-            });
             if (camera.position.z < 0) camera.lookAt(0, -3, -51); else camera.lookAt(0, 0, 0);
             renderer.render(scene, camera);
         }
