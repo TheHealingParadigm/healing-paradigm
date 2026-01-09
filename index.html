@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Healing Paradigm - Mobile Verified Build</title>
+    <title>The Healing Paradigm - Final Build</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', monospace; touch-action: none; }
         #ui { position: absolute; bottom: 30px; width: 100%; text-align: center; z-index: 10; pointer-events: none; }
@@ -48,11 +48,12 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
-        scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-        const sun = new THREE.DirectionalLight(0xffffff, 0.6);
+        // --- GLOBAL LIGHTING ---
+        scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+        const sun = new THREE.DirectionalLight(0xffffff, 0.5);
         sun.position.set(10, 20, 10); scene.add(sun);
 
-        // --- EXTERIOR (KEEPING YOUR BEAUTIFUL DESIGN) ---
+        // --- EXTERIOR ---
         const bld = new THREE.Mesh(new THREE.BoxGeometry(90, 50, 10), new THREE.MeshStandardMaterial({color: 0x89CFF0}));
         bld.position.set(0, 15, -10); scene.add(bld);
 
@@ -94,9 +95,22 @@
             m.position.set(0, 30, -3); scene.add(m);
         });
 
-        // --- INTERIOR ---
+        // --- INTERIOR & CEILING LIGHTS ---
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 160), new THREE.MeshStandardMaterial({color: 0xffffff}));
         floor.rotation.x = -Math.PI/2; floor.position.set(0, -4.9, -80); scene.add(floor);
+
+        function addCeilingLight(x, z) {
+            const g = new THREE.Group();
+            const fixture = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 0.5), new THREE.MeshStandardMaterial({color: 0x333}));
+            const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.8), new THREE.MeshBasicMaterial({color: 0xffffff}));
+            bulb.position.y = -0.4;
+            const l = new THREE.PointLight(0xffffff, 800, 50); l.position.y = -2;
+            g.add(fixture, bulb, l); g.position.set(x, 30, z); scene.add(g);
+        }
+        // 3 Front Lights
+        addCeilingLight(-25, -20); addCeilingLight(0, -20); addCeilingLight(25, -20);
+        // 3 Back Lights
+        addCeilingLight(-25, -85); addCeilingLight(0, -85); addCeilingLight(25, -85);
 
         const table = new THREE.Mesh(new THREE.BoxGeometry(15, 6, 10), new THREE.MeshStandardMaterial({color: 0x3d2b1f}));
         table.position.set(0, -2, -45); scene.add(table);
@@ -107,10 +121,10 @@
         const record = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 0.15, 64), new THREE.MeshStandardMaterial({color: 0x000, metalness: 0.9}));
         record.position.set(0, 1.1, -45); record.name = "vinyl"; scene.add(record);
 
-        const spot = new THREE.SpotLight(0xffffff, 0, 100, 0.4);
-        spot.position.set(0, 30, -45); spot.target = record; scene.add(spot);
+        const recordSpot = new THREE.SpotLight(0xffffff, 0, 100, 0.4);
+        recordSpot.position.set(0, 30, -45); recordSpot.target = record; scene.add(recordSpot);
 
-        // CLERK WITH HEAD
+        // CLERK
         const clerk = new THREE.Group();
         const head = new THREE.Mesh(new THREE.SphereGeometry(1.2), new THREE.MeshStandardMaterial({color: 0x5c4033}));
         head.position.y = 10;
@@ -119,7 +133,7 @@
         const armR = new THREE.Group(); armR.position.set(1.8, 8.5, 0); const a2 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 4, 0.7)); a2.position.y = -2; armR.add(a2);
         clerk.add(head, body, armL, armR); clerk.position.set(0, -5, -95); scene.add(clerk);
 
-        // --- HYBRID INPUT HANDLING ---
+        // --- LOGIC & INPUT ---
         let step = 0, dancing = false, confetti = [];
         
         function handleInput(clientX, clientY) {
@@ -137,12 +151,12 @@
                 if (step === 0) {
                     new TWEEN.Tween(record.position).to({y: 6.5, z: -25}, 800).start();
                     new TWEEN.Tween(record.rotation).to({x: Math.PI/2}, 800).start();
-                    spot.intensity = 6000; step = 1;
+                    recordSpot.intensity = 6000; step = 1;
                 } else if (step === 1) {
                     new TWEEN.Tween(record.position).to({x: 6, y: 3.2, z: -85}, 800).start();
                     new TWEEN.Tween(record.rotation).to({x: 0}, 800).start();
                     new TWEEN.Tween(camera.position).to({x: 0, y: 12, z: -65}, 1000).start();
-                    spot.intensity = 0; step = 2;
+                    recordSpot.intensity = 0; step = 2;
                     document.getElementById('buy-btn').style.display = 'inline-block';
                     document.getElementById('wallet-btn').style.display = 'inline-block';
                 }
@@ -157,13 +171,12 @@
             }
         }, { passive: false });
 
-        // --- BUTTON ACTIONS ---
         function reset() {
             step = 0; dancing = false;
             new TWEEN.Tween(camera.position).to({x:0, y:15, z:110}, 1000).start();
             record.position.set(0, 1.1, -45); record.rotation.set(0,0,0);
             clerk.position.x = 0; clerk.rotation.y = 0;
-            spot.intensity = 0;
+            recordSpot.intensity = 0;
             document.querySelectorAll('.btn').forEach(b => b.style.display = 'none');
             document.getElementById('reset-btn').style.display = 'inline-block';
             document.getElementById('status').innerText = "CLICK THE DOOR TO ENTER";
@@ -185,14 +198,14 @@
 
         function animate() {
             requestAnimationFrame(animate); TWEEN.update();
-            const t = Date.now() * 0.003; // SLOWER DANCE SPEED (Reduced from 0.005)
+            const t = Date.now() * 0.003; // SLOW DANCE FREQUENCY
             confetti.forEach(c => { if(c.position.y > -5) c.position.y -= 0.25; });
             
             if (dancing) {
-                const cycle = Math.sin(t*2); // Slower cycle
-                clerk.position.y = -5 + Math.abs(Math.sin(t*4)) * 1.5; // Bouncing
-                clerk.position.x = cycle * 6; // Wide Sliding
-                clerk.rotation.y = cycle * 0.4; // Torso swiveling
+                const cycle = Math.sin(t*2);
+                clerk.position.y = -5 + Math.abs(Math.sin(t*4)) * 1.5; 
+                clerk.position.x = cycle * 6; 
+                clerk.rotation.y = cycle * 0.4;
 
                 if (cycle > 0) { 
                     armL.rotation.z = 2.6; armR.rotation.z = 0.2; 
