@@ -57,25 +57,21 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         let currentState = 'outside', recordState = 'table', isDancing = false, isWaving = false, isPlaying = false;
-        let armL, armR, clerkGroup, hairGroup, recordSpotlight, turntable, fans = [], confetti = [];
+        let armL, armR, clerkGroup, recordSpotlight, turntable, fans = [], confetti = [];
 
         const amb = new THREE.AmbientLight(0xffffff, 1.0);
         scene.add(amb);
 
-        // --- EXTERIOR ARCHITECTURE ---
+        // --- EXTERIOR ---
         const facade = new THREE.Mesh(new THREE.PlaneGeometry(120, 70), new THREE.MeshStandardMaterial({ color: 0x89CFF0 }));
         facade.position.z = -2; scene.add(facade);
-
         const whiteFrame = new THREE.Mesh(new THREE.BoxGeometry(32, 18, 2), new THREE.MeshStandardMaterial({color: 0xffffff}));
         whiteFrame.position.set(0, 2, 0); scene.add(whiteFrame);
-
-        // Windows
         const winGeo = new THREE.PlaneGeometry(8, 10);
         const winMat = new THREE.MeshStandardMaterial({color: 0x111, transparent: true, opacity: 0.4});
         const winL = new THREE.Mesh(winGeo, winMat); winL.position.set(-10, 2, 1.1);
         const winR = new THREE.Mesh(winGeo, winMat); winR.position.set(10, 2, 1.1);
         scene.add(winL, winR);
-
         const door = new THREE.Mesh(new THREE.PlaneGeometry(6, 11), new THREE.MeshStandardMaterial({ color: 0x111, transparent: true, opacity: 0.6 }));
         door.position.set(0, 0.5, 1.5); door.name = "door_trigger"; scene.add(door);
 
@@ -91,15 +87,13 @@
         }
         createPalm(-35); createPalm(35);
 
-        // --- INTERIOR ROOM ---
+        // --- INTERIOR ---
         const interior = new THREE.Mesh(new THREE.BoxGeometry(70, 40, 100), new THREE.MeshStandardMaterial({ color: 0x89CFF0, side: THREE.BackSide }));
         interior.position.z = -50; scene.add(interior);
 
-        // Table
         const browseTable = new THREE.Mesh(new THREE.BoxGeometry(10, 6, 6), new THREE.MeshStandardMaterial({ color: 0x5C4033 }));
         browseTable.position.set(0, -12, -22); scene.add(browseTable);
 
-        // Clothing Rack
         const rackGroup = new THREE.Group();
         const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 15), new THREE.MeshStandardMaterial({color: 0x333}));
         bar.rotation.z = Math.PI/2; rackGroup.add(bar);
@@ -109,7 +103,6 @@
         }
         rackGroup.position.set(-30, 0, -35); rackGroup.rotation.y = Math.PI/2; scene.add(rackGroup);
 
-        // Bookshelf
         const bookshelf = new THREE.Group();
         const woodMat = new THREE.MeshStandardMaterial({ color: 0x4a2c2a });
         const shelfBack = new THREE.Mesh(new THREE.BoxGeometry(10, 15, 1), woodMat);
@@ -124,7 +117,6 @@
         }
         bookshelf.position.set(30, -1, -35); bookshelf.rotation.y = -Math.PI/2; scene.add(bookshelf);
 
-        // Record Player
         const recordPlayer = new THREE.Group();
         const pBase = new THREE.Mesh(new THREE.BoxGeometry(5, 1, 4), new THREE.MeshStandardMaterial({color: 0x008080}));
         const pOutline = new THREE.Mesh(new THREE.BoxGeometry(5.2, 1.1, 4.2), new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.BackSide}));
@@ -138,21 +130,19 @@
         const record = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 0.05, 64), new THREE.MeshPhysicalMaterial({ color: 0x050505, roughness: 0.05, metalness: 0.8 }));
         record.position.set(0, -8.95, -22); record.name = "record"; scene.add(record);
 
+        // --- FIXED SPOTLIGHT ---
         recordSpotlight = new THREE.SpotLight(0xffffff, 0);
+        recordSpotlight.angle = 0.5;
+        recordSpotlight.penumbra = 0.3;
+        recordSpotlight.decay = 2;
+        recordSpotlight.distance = 50;
         scene.add(recordSpotlight);
+        recordSpotlight.target = record;
 
-        // --- THE CLERK ---
+        // --- CLERK ---
         clerkGroup = new THREE.Group();
         const head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 16), new THREE.MeshStandardMaterial({color: 0x5c4033}));
         head.position.y = -1.6;
-        hairGroup = new THREE.Group();
-        for(let i=0; i<18; i++) {
-            const dread = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 1.5, 4, 8), new THREE.MeshStandardMaterial({color: 0x111}));
-            const angle = (i/18) * Math.PI * 2;
-            dread.position.set(Math.cos(angle)*0.6, -0.4, Math.sin(angle)*0.6);
-            hairGroup.add(dread);
-        }
-        head.add(hairGroup);
         const body = new THREE.Mesh(new THREE.CapsuleGeometry(1, 2.5, 4, 8), new THREE.MeshStandardMaterial({color: 0x333}));
         body.position.y = -3.8;
         armL = new THREE.Group(); armL.position.set(-1.2, -3, 0); const lM = new THREE.Mesh(new THREE.CapsuleGeometry(0.25, 1.8, 4, 8), new THREE.MeshStandardMaterial({color: 0x5c4033})); lM.position.y = -0.8; armL.add(lM);
@@ -178,7 +168,6 @@
 
         // --- FANS ---
         [[-15, -25], [15, -25], [-15, -45], [15, -45]].forEach(p => {
-            const light = new THREE.PointLight(0xffffff, 60, 40); light.position.set(p[0], 13, p[1]); scene.add(light);
             const f = new THREE.Group();
             for(let i=0; i<4; i++){
                 const b = new THREE.Mesh(new THREE.BoxGeometry(6, 0.1, 1), new THREE.MeshStandardMaterial({color: 0x222}));
@@ -205,13 +194,18 @@
                 } else if (obj.name === "record") {
                     if (recordState === 'table') {
                         recordState = 'floating';
-                        new TWEEN.Tween(amb).to({ intensity: 0.2 }, 500).start();
-                        recordSpotlight.intensity = 2500; recordSpotlight.position.set(2, 5, -5); recordSpotlight.target = record;
-                        new TWEEN.Tween(record.position).to({ y: -0.2, z: -8 }, 800).start();
+                        new TWEEN.Tween(amb).to({ intensity: 0.1 }, 500).start();
+                        recordSpotlight.position.set(record.position.x, 10, record.position.z);
+                        new TWEEN.Tween(recordSpotlight).to({ intensity: 2000 }, 500).start();
+                        new TWEEN.Tween(record.position).to({ y: -0.2, z: -8 }, 800).onUpdate(() => {
+                           recordSpotlight.position.x = record.position.x;
+                           recordSpotlight.position.z = record.position.z;
+                        }).start();
                         new TWEEN.Tween(record.rotation).to({ x: Math.PI / 2 }, 800).start();
                     } else if (recordState === 'floating') {
                         recordState = 'counter';
-                        new TWEEN.Tween(amb).to({ intensity: 1.0 }, 500).start(); recordSpotlight.intensity = 0;
+                        new TWEEN.Tween(amb).to({ intensity: 1.0 }, 500).start(); 
+                        new TWEEN.Tween(recordSpotlight).to({ intensity: 0 }, 500).start();
                         new TWEEN.Tween(record.position).to({ x: 0, y: -3.4, z: -46 }, 1000).start();
                         new TWEEN.Tween(record.rotation).to({ x: 0 }, 1000).start();
                         new TWEEN.Tween(camera.position).to({ z: -32, y: 1.5 }, 1200).start();
@@ -225,7 +219,7 @@
             isDancing = true; isPlaying = true;
             new TWEEN.Tween(record.position).to({ x: -4, y: -1.75, z: -45 }, 800).start();
             new Audio('https://www.myinstants.com/media/sounds/ka-ching.mp3').play();
-            for(let i=0; i<100; i++) {
+            for(let i=0; i<80; i++) {
                 const p = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.3), new THREE.MeshBasicMaterial({color: Math.random() * 0xffffff, side: 2}));
                 p.position.set(Math.random()*20-10, 15, -45); scene.add(p);
                 confetti.push({mesh: p, speed: Math.random()*0.1+0.05});
@@ -240,11 +234,14 @@
             if (isPlaying) { turntable.rotation.y += 0.1; record.rotation.y += 0.1; }
             if (isWaving) { armR.rotation.z = Math.sin(Date.now() * 0.01) * 0.6 + 2.4; }
             else if (isDancing) {
-                const t = Date.now() * 0.005;
-                clerkGroup.position.x = Math.sin(t) * 1.5;
-                armL.rotation.z = Math.sin(t*2); armR.rotation.z = -Math.sin(t*2);
-                hairGroup.children.forEach((d, i) => { d.rotation.z = Math.sin(t + i) * 0.3; });
-            }
+                // Smeez Dance Animation
+                const t = Date.now() * 0.006;
+                const sideShift = Math.sin(t) * 1.2;
+                clerkGroup.position.x = sideShift;
+                clerkGroup.rotation.z = Math.sin(t) * 0.1; // Torso tilt
+                armL.rotation.z = Math.sin(t * 1.5) * 1.2;
+                armR.rotation.z = -Math.sin(t * 1.5) * 1.2;
+            } else { armR.rotation.z = 0; armL.rotation.z = 0; clerkGroup.rotation.z = 0; }
             confetti.forEach(c => { c.mesh.position.y -= c.speed; });
             if (camera.position.z < 0) camera.lookAt(0, -2, -52); else camera.lookAt(0, 0, 0);
             renderer.render(scene, camera);
