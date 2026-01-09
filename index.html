@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Healing Paradigm - Final Verified Build</title>
+    <title>The Healing Paradigm - Verified Build</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', monospace; }
-        #ui-container { position: absolute; bottom: 40px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 100; pointer-events: none; }
-        #ui-text { color: #00ffff; font-weight: bold; background: rgba(0,0,0,0.9); padding: 12px 30px; border-radius: 50px; text-align: center; border: 2px solid #00ffff; pointer-events: auto; }
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
+        #ui-container { position: absolute; bottom: 20px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 100; pointer-events: none; }
+        #ui-text { color: #fff; background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 5px; pointer-events: auto; border: 1px solid #00ffff; }
         .btn-group { display: flex; gap: 10px; pointer-events: auto; }
-        .nav-btn { padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; display: none; }
-        #buy-btn { background: #008000; color: white; }
-        #wallet-btn { background: #512DA8; color: white; }
-        #back-btn { background: #CC5500; color: white; }
+        .nav-btn { padding: 10px 20px; border: none; cursor: pointer; font-weight: bold; border-radius: 4px; display: none; }
+        #buy-btn { background: #2ecc71; color: white; }
+        #wallet-btn { background: #9b59b6; color: white; }
+        #back-btn { background: #e67e22; color: white; }
+        #reset-btn { background: #e74c3c; color: white; display: block; } /* Always visible reset */
     </style>
 </head>
 <body>
@@ -21,15 +22,15 @@
             <button id="buy-btn" class="nav-btn">BUY NOW</button>
             <button id="wallet-btn" class="nav-btn">CONNECT WALLET</button>
             <button id="back-btn" class="nav-btn">GO BACK</button>
+            <button id="reset-btn" class="nav-btn">RESET VIEW</button>
         </div>
-        <div id="ui-text">CLICK THE DOOR TO ENTER</div>
+        <div id="ui-text">CLICK DOOR TO ENTER</div>
     </div>
 
     <script type="importmap">
         {
             "imports": {
                 "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
                 "tween": "https://cdnjs.cloudflare.com/ajax/libs/tween.js/23.1.1/tween.esm.js"
             }
         }
@@ -37,13 +38,10 @@
 
     <script type="module">
         import * as THREE from 'three';
-        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
-        import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
         import TWEEN from 'tween';
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
         document.body.appendChild(renderer.domElement);
 
         const scene = new THREE.Scene();
@@ -51,168 +49,132 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
-        let currentState = 'outside', recordState = 'table', isDancing = false;
-        let record, recordSpot, clerk, armL, armR, windowTint, confetti = [];
-
+        // LIGHTING
         scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        dirLight.position.set(10, 20, 10);
+        scene.add(dirLight);
 
-        // --- 1. EXTERIOR DESIGN ---
-        const blueMat = new THREE.MeshStandardMaterial({ color: 0x89CFF0 });
-        const building = new THREE.Mesh(new THREE.BoxGeometry(85, 50, 10), blueMat);
-        building.position.set(0, 15, -10); scene.add(building);
+        // --- EXTERIOR ---
+        const building = new THREE.Mesh(new THREE.BoxGeometry(80, 50, 10), new THREE.MeshStandardMaterial({color: 0x89CFF0}));
+        building.position.set(0, 20, -10); scene.add(building);
 
-        const door = new THREE.Mesh(new THREE.BoxGeometry(10, 18, 2), blueMat);
-        door.position.set(0, 4.5, -2); door.name = "door_trigger"; scene.add(door);
+        const sign = new THREE.Mesh(new THREE.BoxGeometry(40, 8, 2), new THREE.MeshStandardMaterial({color: 0x111}));
+        sign.position.set(0, 38, -4); scene.add(sign); // Proxy for text sign
 
-        // Windows
-        const winGeo = new THREE.BoxGeometry(15, 15, 0.5);
-        const winMat = new THREE.MeshStandardMaterial({color: 0x111, metalness: 0.8});
-        const wL = new THREE.Mesh(winGeo, winMat); wL.position.set(-25, 12, -4); scene.add(wL);
-        const wR = new THREE.Mesh(winGeo, winMat); wR.position.set(25, 12, -4); scene.add(wR);
+        const door = new THREE.Mesh(new THREE.BoxGeometry(10, 18, 2), new THREE.MeshStandardMaterial({color: 0x89CFF0}));
+        door.position.set(0, 4.5, -3); door.name = "door_trigger"; scene.add(door);
 
-        // Name Sign
-        const loader = new FontLoader();
-        loader.load('https://threejs.org/examples/fonts/helvetiker_bold.typeface.json', (font) => {
-            const textGeo = new TextGeometry('THE HEALING PARADIGM', { font, size: 3.5, height: 1 });
-            textGeo.center();
-            const textMesh = new THREE.Mesh(textGeo, new THREE.MeshStandardMaterial({color: 0xffffff}));
-            textMesh.position.set(0, 28, -4);
-            scene.add(textMesh);
-        });
+        const winL = new THREE.Mesh(new THREE.BoxGeometry(15, 15, 1), new THREE.MeshBasicMaterial({color: 0x222}));
+        winL.position.set(-20, 12, -4); scene.add(winL);
 
-        // Sidewalk & Lamps
-        const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(150, 1, 40), new THREE.MeshStandardMaterial({color: 0x333}));
-        sidewalk.position.set(0, -5.5, 15); scene.add(sidewalk);
+        const winR = new THREE.Mesh(new THREE.BoxGeometry(15, 15, 1), new THREE.MeshBasicMaterial({color: 0x222}));
+        winR.position.set(20, 12, -4); scene.add(winR);
 
-        function makeLamp(x) {
+        const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(120, 1, 30), new THREE.MeshStandardMaterial({color: 0x444}));
+        sidewalk.position.set(0, -5, 15); scene.add(sidewalk);
+
+        function addLamp(x) {
             const g = new THREE.Group();
-            const p = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 20), new THREE.MeshStandardMaterial({color: 0x111}));
-            const b = new THREE.Mesh(new THREE.SphereGeometry(1.2), new THREE.MeshBasicMaterial({color: 0xffffaa}));
-            b.position.y = 10; const pl = new THREE.PointLight(0xffaa00, 800, 60); pl.position.y = 10;
-            g.add(p,b,pl); g.position.set(x, 4.5, 25); scene.add(g);
+            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 18), new THREE.MeshStandardMaterial({color: 0x111}));
+            const head = new THREE.Mesh(new THREE.SphereGeometry(1.5), new THREE.MeshBasicMaterial({color: 0xffffaa}));
+            head.position.y = 9; g.add(pole, head); g.position.set(x, 4, 20); scene.add(g);
         }
-        makeLamp(-45); makeLamp(45);
+        addLamp(-35); addLamp(35);
 
-        // Palms
-        function makePalm(x) {
-            const p = new THREE.Group();
-            const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 1, 35), new THREE.MeshStandardMaterial({color: 0x664422}));
-            const lv = new THREE.Group(); lv.position.y = 17;
-            for(let i=0; i<8; i++) {
-                const l = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 14), new THREE.MeshStandardMaterial({color: 0x228B22}));
-                l.rotation.z = 1.4; l.rotation.y = i * Math.PI/4; lv.add(l);
-            }
-            p.add(tr, lv); p.position.set(x, 8, 30); scene.add(p);
-        }
-        makePalm(-65); makePalm(65);
+        // --- INTERIOR ---
+        const intWalls = new THREE.Mesh(new THREE.BoxGeometry(100, 60, 150), new THREE.MeshStandardMaterial({color: 0x111, side: THREE.BackSide}));
+        intWalls.position.z = -80; intWalls.name = "wall_exit"; scene.add(intWalls);
 
-        windowTint = new THREE.Mesh(new THREE.PlaneGeometry(85, 50), new THREE.MeshBasicMaterial({color: 0x000, transparent: true, opacity: 0.98}));
-        windowTint.position.z = -3.5; scene.add(windowTint);
+        const marble = new THREE.Mesh(new THREE.PlaneGeometry(100, 150), new THREE.MeshStandardMaterial({color: 0xffffff}));
+        marble.rotation.x = -Math.PI/2; marble.position.set(0, -4.9, -80); scene.add(marble);
 
-        // --- 2. INTERIOR DESIGN ---
-        const interiorWalls = new THREE.Mesh(new THREE.BoxGeometry(120, 70, 150), new THREE.MeshStandardMaterial({ color: 0x050505, side: THREE.BackSide }));
-        interiorWalls.position.z = -80; interiorWalls.name = "wall_exit"; scene.add(interiorWalls);
+        const table = new THREE.Mesh(new THREE.BoxGeometry(12, 6, 8), new THREE.MeshStandardMaterial({color: 0x3d2b1f}));
+        table.position.set(0, -2, -40); scene.add(table);
 
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 150), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1 }));
-        floor.rotation.x = -Math.PI/2; floor.position.set(0, -5.4, -80); scene.add(floor);
+        const record = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.5, 0.1, 32), new THREE.MeshStandardMaterial({color: 0x000}));
+        record.position.set(0, 1.1, -40); record.name = "record"; scene.add(record);
 
-        const table = new THREE.Mesh(new THREE.BoxGeometry(16, 6, 10), new THREE.MeshStandardMaterial({color: 0x3d2b1f}));
-        table.position.set(0, -2.5, -45); scene.add(table);
-
-        record = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.5, 0.1, 64), new THREE.MeshStandardMaterial({color: 0x111, metalness: 0.9}));
-        record.position.set(0, 0.6, -45); record.name = "record"; scene.add(record);
-
-        recordSpot = new THREE.SpotLight(0xffffff, 0, 150, 0.4); 
-        recordSpot.position.set(0, 30, -45); scene.add(recordSpot); recordSpot.target = record;
+        const spot = new THREE.SpotLight(0xffffff, 0, 100, 0.3);
+        spot.position.set(0, 30, -40); scene.add(spot); spot.target = record;
 
         // Clerk
-        clerk = new THREE.Group();
-        const cBody = new THREE.Mesh(new THREE.CapsuleGeometry(1.6, 6), new THREE.MeshStandardMaterial({color: 0x222})); cBody.position.y = 5.5;
-        armL = new THREE.Group(); armL.position.set(-1.8, 8, 0); const a1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 3.8), new THREE.MeshStandardMaterial({color: 0x5c4033})); a1.position.y = -1.9; armL.add(a1);
-        armR = new THREE.Group(); armR.position.set(1.8, 8, 0); const a2 = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 3.8), new THREE.MeshStandardMaterial({color: 0x5c4033})); a2.position.y = -1.9; armR.add(a2);
-        clerk.add(cBody, armL, armR); clerk.position.set(0, -5, -95); scene.add(clerk);
+        const clerk = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.CapsuleGeometry(1.5, 5), new THREE.MeshStandardMaterial({color: 0x222}));
+        body.position.y = 5;
+        const armL = new THREE.Group(); armL.position.set(-1.8, 7.5, 0); const a1 = new THREE.Mesh(new THREE.BoxGeometry(0.5, 4, 0.5)); a1.position.y = -2; armL.add(a1);
+        const armR = new THREE.Group(); armR.position.set(1.8, 7.5, 0); const a2 = new THREE.Mesh(new THREE.BoxGeometry(0.5, 4, 0.5)); a2.position.y = -2; armR.add(a2);
+        clerk.add(body, armL, armR); clerk.position.set(0, -5, -95); scene.add(clerk);
 
-        // --- 3. INTERACTION & CAMERA ---
-        const exitShop = () => {
-            currentState = 'outside'; recordState = 'table'; isDancing = false;
-            new TWEEN.Tween(camera.position).to({x: 0, y: 15, z: 100}, 1000).start();
-            new TWEEN.Tween(windowTint.material).to({opacity: 0.98}, 500).start();
+        // --- LOGIC ---
+        let state = 'outside', recState = 'table', isDancing = false, confetti = [];
+
+        function resetEverything() {
+            state = 'outside'; recState = 'table'; isDancing = false;
+            camera.position.set(0, 15, 90);
+            record.position.set(0, 1.1, -40);
+            record.rotation.set(0,0,0);
+            spot.intensity = 0;
             document.querySelectorAll('.nav-btn').forEach(b => b.style.display = 'none');
-            document.getElementById('ui-text').innerText = "CLICK THE DOOR TO ENTER";
-        };
+            document.getElementById('reset-btn').style.display = 'block';
+            document.getElementById('ui-text').innerText = "CLICK DOOR TO ENTER";
+        }
 
         window.addEventListener('mousedown', (e) => {
             mouse.x = (e.clientX/window.innerWidth)*2-1; mouse.y = -(e.clientY/window.innerHeight)*2+1;
             raycaster.setFromCamera(mouse, camera);
             const hits = raycaster.intersectObjects(scene.children, true);
-            if (hits.length > 0) {
-                const recordHit = hits.find(h => h.object.name === "record");
-                const doorHit = hits.find(h => h.object.name === "door_trigger");
-                const wallHit = hits.find(h => h.object.name === "wall_exit");
+            if(!hits.length) return;
+            const obj = hits[0].object;
 
-                if (recordHit) {
-                    if (recordState === 'table') {
-                        recordState = 'view';
-                        new TWEEN.Tween(record.position).to({y: 6, z: -15}, 800).start();
-                        new TWEEN.Tween(record.rotation).to({x: Math.PI/2}, 800).start();
-                        new TWEEN.Tween(recordSpot).to({intensity: 7000}, 400).start();
-                    } else if (recordState === 'view') {
-                        recordState = 'checkout';
-                        new TWEEN.Tween(record.position).to({x: 8, y: 4, z: -85}, 800).start();
-                        new TWEEN.Tween(record.rotation).to({x: 0}, 800).start();
-                        // Elevated Camera View for Checkout
-                        new TWEEN.Tween(camera.position).to({x: 0, y: 10, z: -60}, 1000).start();
-                        recordSpot.intensity = 0;
-                        document.getElementById('buy-btn').style.display = 'block';
-                        document.getElementById('wallet-btn').style.display = 'block';
-                    }
-                } else if (doorHit && currentState === 'outside') {
-                    currentState = 'inside';
-                    // Elevated angled view above tables
-                    new TWEEN.Tween(camera.position).to({x: 0, y: 8, z: -5}, 1000).start();
-                    new TWEEN.Tween(windowTint.material).to({opacity: 0}, 500).start();
-                    document.getElementById('back-btn').style.display = 'block';
-                } else if (wallHit && currentState === 'inside' && recordState !== 'view') {
-                    exitShop();
+            if(obj.name === "door_trigger") {
+                state = 'inside';
+                new TWEEN.Tween(camera.position).to({x:0, y:12, z:5}, 1000).start();
+                document.getElementById('back-btn').style.display = 'block';
+            } else if(obj.name === "record") {
+                if(recState === 'table') {
+                    recState = 'view';
+                    new TWEEN.Tween(record.position).to({y: 6, z: -10}, 600).start();
+                    new TWEEN.Tween(record.rotation).to({x: Math.PI/2}, 600).start();
+                    spot.intensity = 5000;
+                } else if(recState === 'view') {
+                    recState = 'checkout';
+                    new TWEEN.Tween(record.position).to({x: 6, y: 3, z: -85}, 800).start();
+                    new TWEEN.Tween(record.rotation).to({x: 0}, 800).start();
+                    new TWEEN.Tween(camera.position).to({y: 10, z: -60}, 1000).start();
+                    spot.intensity = 0;
+                    document.getElementById('buy-btn').style.display = 'block';
+                    document.getElementById('wallet-btn').style.display = 'block';
                 }
-            }
+            } else if(obj.name === "wall_exit") { resetEverything(); }
         });
 
         document.getElementById('buy-btn').addEventListener('click', () => {
             isDancing = true;
             new Audio('https://www.myinstants.com/media/sounds/ka-ching.mp3').play();
-            for(let i=0; i<70; i++) {
-                const p = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.5), new THREE.MeshBasicMaterial({color: Math.random()*0xffffff, side: 2}));
-                p.position.set(Math.random()*40-20, 25, -90); scene.add(p);
-                confetti.push({m: p, s: Math.random()*0.25 + 0.1});
+            for(let i=0; i<50; i++) {
+                const c = new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.5), new THREE.MeshBasicMaterial({color: Math.random()*0xffffff, side: 2}));
+                c.position.set(Math.random()*20-10, 20, -90); scene.add(c);
+                confetti.push(c);
             }
         });
 
-        document.getElementById('back-btn').addEventListener('click', exitShop);
-        camera.position.set(0, 15, 100);
+        document.getElementById('reset-btn').addEventListener('click', resetEverything);
+        document.getElementById('back-btn').addEventListener('click', resetEverything);
+
+        resetEverything();
 
         function animate() {
             requestAnimationFrame(animate); TWEEN.update();
-            const t = Date.now() * 0.003;
-            confetti.forEach(c => { if(c.m.position.y > -5) c.m.position.y -= c.s; });
-
-            if (isDancing) {
-                // THE SMEEZ: Bounce + Alternating Arms + Side Shift
-                clerk.position.y = -5 + Math.abs(Math.sin(t*5)) * 1.8;
-                clerk.position.x = Math.sin(t*2.5) * 4; 
-                if (Math.sin(t*5) > 0) {
-                    armL.rotation.z = 2.4; armR.rotation.z = 0; armR.rotation.x = -1.6;
-                } else {
-                    armR.rotation.z = -2.4; armL.rotation.z = 0; armL.rotation.x = -1.6;
-                }
+            const t = Date.now() * 0.004;
+            confetti.forEach(c => { if(c.position.y > -5) c.position.y -= 0.15; });
+            if(isDancing) {
+                clerk.position.y = -5 + Math.abs(Math.sin(t*5)) * 2;
+                clerk.position.x = Math.sin(t*2) * 3;
+                if(Math.sin(t*5) > 0) { armL.rotation.z = 2; armR.rotation.z = 0; }
+                else { armR.rotation.z = -2; armL.rotation.z = 0; }
             }
-
-            // Proper Camera Look-At Logic
-            if (camera.position.z < 0) {
-                camera.lookAt(0, 2, -120); // Looking down/forward into the shop
-            } else {
-                camera.lookAt(0, 10, 0); // Looking at the storefront
-            }
+            camera.lookAt(0, 0, state === 'outside' ? 0 : -100);
             renderer.render(scene, camera);
         }
         animate();
