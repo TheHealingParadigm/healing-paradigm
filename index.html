@@ -49,18 +49,20 @@
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        document.body.appendChild(renderer.domElement);
+        // --- PHYSICALLY CORRECT RENDERER SETUP ---
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
 
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-        let currentState = 'outside', recordState = 'table', isDancing = false, isPlaying = false;
-        let armL, armR, head, clerkGroup, recordSpotlight, turntable, confetti = [];
+// This ensures colors look correct and not "washed out"
+renderer.outputColorSpace = THREE.SRGBColorSpace; 
+// Mimics high-end film stock for better highlights
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2; 
 
-        const amb = new THREE.AmbientLight(0xffffff, 0.8);
-        scene.add(amb);
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+// Deep navy/black background helps neon and lamps pop
+scene.background = new THREE.Color(0x050505); 
 
         // --- EXTERIOR ARCHITECTURE (RESTORED & PERSISTENT) ---
         const buildingGroup = new THREE.Group();
