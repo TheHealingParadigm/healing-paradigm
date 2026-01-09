@@ -61,7 +61,6 @@
         let currentState = 'outside', recordState = 'table', isDancing = false, isPlaying = false;
         let armL, armR, torso, head, clerkGroup, recordSpotlight, turntable, fans = [], palms = [], confetti = [];
 
-        // --- GLOBAL LIGHTS ---
         const amb = new THREE.AmbientLight(0xffffff, 0.4); 
         scene.add(amb);
 
@@ -81,7 +80,7 @@
             scene.add(p);
             palms.push(leafGroup);
         }
-        createPalm(-40, 35); createPalm(40, 35);
+        createPalm(-42, 35); createPalm(42, 35);
 
         function createStreetLamp(x) {
             const lamp = new THREE.Group();
@@ -122,7 +121,6 @@
         const interiorRoom = new THREE.Mesh(new THREE.BoxGeometry(75, 40, 100), new THREE.MeshStandardMaterial({ color: 0x89CFF0, side: THREE.BackSide }));
         interiorRoom.position.z = -50; interiorRoom.name = "interior_wall"; scene.add(interiorRoom);
 
-        // WARM CEILING LIGHTS
         function createWarmLight(x, z) {
             const lightGroup = new THREE.Group();
             const fixture = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 0.2, 32), new THREE.MeshStandardMaterial({color: 0xeeeeee}));
@@ -134,18 +132,24 @@
         }
         [ -22, 0, 22 ].forEach(x => { [ -35, -75 ].forEach(z => createWarmLight(x, z)); });
 
-        // NEW ORBITAL FANS (3 Wide Blades)
+        // UPDATED 5-BLADE PROPELLER FANS
         function createFan(x, z) {
             const fanGroup = new THREE.Group();
-            const hub = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 0.8, 32), new THREE.MeshStandardMaterial({color: 0x222}));
+            // Main Motor Housing
+            const hub = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.4, 1.5, 32), new THREE.MeshStandardMaterial({color: 0x2d2d2d, metalness: 0.8, roughness: 0.2}));
+            // Light Bowl at bottom of fan
+            const bowl = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({color: 0xffffff, emissive: 0xffe4b5, emissiveIntensity: 0.5}));
+            bowl.rotation.x = Math.PI; bowl.position.y = -0.7;
+            
             const bladePivot = new THREE.Group();
-            for(let i=0; i<3; i++) {
-                const blade = new THREE.Mesh(new THREE.BoxGeometry(9, 0.1, 3), new THREE.MeshStandardMaterial({color: 0x222}));
-                blade.position.x = 5; blade.rotation.y = (i * Math.PI * 2) / 3;
-                blade.rotation.x = 0.2; // Pitch
+            for(let i=0; i<5; i++) {
+                const blade = new THREE.Mesh(new THREE.BoxGeometry(8.5, 0.1, 2.2), new THREE.MeshStandardMaterial({color: 0x1a1a1a, metalness: 0.5}));
+                blade.position.x = 4.5;
+                blade.rotation.y = (i * Math.PI * 2) / 5;
+                blade.rotation.x = 0.15; // Realistic blade pitch
                 bladePivot.add(blade);
             }
-            fanGroup.add(hub, bladePivot); fanGroup.position.set(x, 17, z); scene.add(fanGroup);
+            fanGroup.add(hub, bowl, bladePivot); fanGroup.position.set(x, 17, z); scene.add(fanGroup);
             fans.push(bladePivot);
         }
         createFan(-18, -45); createFan(18, -45);
@@ -269,7 +273,6 @@
             requestAnimationFrame(animate); TWEEN.update();
             const time = Date.now() * 0.001;
             
-            // Swaying Palms
             palms.forEach((leafGroup, index) => {
                 leafGroup.rotation.x = Math.sin(time + index) * 0.05;
                 leafGroup.rotation.z = Math.cos(time * 0.5 + index) * 0.03;
@@ -277,7 +280,7 @@
 
             if (recordState === 'view') { recordSpotlight.position.set(record.position.x, record.position.y + 10, record.position.z + 10); }
             if (isPlaying) { turntable.rotation.y += 0.1; record.rotation.y += 0.1; }
-            fans.forEach(f => f.rotation.y += 0.12);
+            fans.forEach(f => f.rotation.y += 0.14);
             confetti.forEach(c => { c.mesh.position.y -= c.speed; });
             
             if (isDancing) {
