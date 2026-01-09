@@ -57,38 +57,22 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         let currentState = 'outside', recordState = 'table', isDancing = false, isWaving = false, isPlaying = false;
-        let armL, armR, clerkGroup, recordSpotlight, turntable, fans = [], confetti = [];
+        let armL, armR, head, clerkGroup, recordSpotlight, turntable, fans = [], confetti = [];
 
-        const amb = new THREE.AmbientLight(0xffffff, 1.0);
+        const amb = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(amb);
 
-        // --- EXTERIOR ---
+        // --- EXTERIOR ARCHITECTURE ---
         const facade = new THREE.Mesh(new THREE.PlaneGeometry(120, 70), new THREE.MeshStandardMaterial({ color: 0x89CFF0 }));
         facade.position.z = -2; scene.add(facade);
-        const whiteFrame = new THREE.Mesh(new THREE.BoxGeometry(32, 18, 2), new THREE.MeshStandardMaterial({color: 0xffffff}));
-        whiteFrame.position.set(0, 2, 0); scene.add(whiteFrame);
-        
         const winMat = new THREE.MeshStandardMaterial({color: 0x111, transparent: true, opacity: 0.4});
         const winL = new THREE.Mesh(new THREE.PlaneGeometry(8, 10), winMat); winL.position.set(-10, 2, 1.1);
         const winR = new THREE.Mesh(new THREE.PlaneGeometry(8, 10), winMat); winR.position.set(10, 2, 1.1);
         scene.add(winL, winR);
-        
         const door = new THREE.Mesh(new THREE.PlaneGeometry(6, 11), new THREE.MeshStandardMaterial({ color: 0x111, transparent: true, opacity: 0.6 }));
         door.position.set(0, 0.5, 1.5); door.name = "door_trigger"; scene.add(door);
 
-        function createPalm(x) {
-            const p = new THREE.Group();
-            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.6, 20), new THREE.MeshStandardMaterial({color: 0x664422}));
-            p.add(trunk);
-            for(let i=0; i<10; i++){
-                const l = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 8, 2, 8), new THREE.MeshStandardMaterial({color: 0x228B22}));
-                l.position.y = 10; l.rotation.z = 1.4; l.rotation.y = i * Math.PI/5; p.add(l);
-            }
-            p.position.set(x, -5, 15); scene.add(p);
-        }
-        createPalm(-35); createPalm(35);
-
-        // --- INTERIOR ---
+        // --- INTERIOR ROOM ---
         const interior = new THREE.Mesh(new THREE.BoxGeometry(70, 40, 100), new THREE.MeshStandardMaterial({ color: 0x89CFF0, side: THREE.BackSide }));
         interior.position.z = -50; scene.add(interior);
 
@@ -96,6 +80,7 @@
         browseTable.position.set(0, -12, -22); scene.add(browseTable);
 
         const rackGroup = new THREE.Group();
+        rackGroup.name = "clothing_rack";
         const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 15), new THREE.MeshStandardMaterial({color: 0x333}));
         bar.rotation.z = Math.PI/2; rackGroup.add(bar);
         for(let i=0; i<6; i++) {
@@ -105,6 +90,7 @@
         rackGroup.position.set(-30, 0, -35); rackGroup.rotation.y = Math.PI/2; scene.add(rackGroup);
 
         const bookshelf = new THREE.Group();
+        bookshelf.name = "bookshelf";
         const shelfBack = new THREE.Mesh(new THREE.BoxGeometry(10, 15, 1), new THREE.MeshStandardMaterial({ color: 0x4a2c2a }));
         shelfBack.name = "bookshelf"; bookshelf.add(shelfBack);
         bookshelf.position.set(30, -1, -35); bookshelf.rotation.y = -Math.PI/2; scene.add(bookshelf);
@@ -121,14 +107,14 @@
         const record = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 0.05, 64), new THREE.MeshPhysicalMaterial({ color: 0x050505, roughness: 0.05, metalness: 0.8 }));
         record.position.set(0, -8.95, -22); record.name = "record"; scene.add(record);
 
-        // --- SPOTLIGHT SYSTEM ---
-        recordSpotlight = new THREE.SpotLight(0xffffff, 0, 50, 0.4, 0.5, 1);
+        // --- SPOTLIGHT (FRONT FACING) ---
+        recordSpotlight = new THREE.SpotLight(0xffffff, 0, 60, 0.6, 0.5, 1);
         scene.add(recordSpotlight);
-        recordSpotlight.target = record; // Physically link light to record movement
+        recordSpotlight.target = record;
 
         // --- CLERK ---
         clerkGroup = new THREE.Group();
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 16), new THREE.MeshStandardMaterial({color: 0x5c4033}));
+        head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 16), new THREE.MeshStandardMaterial({color: 0x5c4033}));
         head.position.y = -1.6;
         const torso = new THREE.Mesh(new THREE.CapsuleGeometry(1, 2.5, 4, 8), new THREE.MeshStandardMaterial({color: 0x333}));
         torso.position.y = -3.8;
@@ -136,14 +122,29 @@
         armR = new THREE.Group(); armR.position.set(1.2, -3, 0); const rM = new THREE.Mesh(new THREE.CapsuleGeometry(0.25, 1.8, 4, 8), new THREE.MeshStandardMaterial({color: 0x5c4033})); rM.position.y = -0.8; armR.add(rM);
         clerkGroup.add(torso, head, armL, armR); clerkGroup.position.set(0, 0, -52); scene.add(clerkGroup);
 
-        // --- TEXT ---
-        const loader = new FontLoader();
-        loader.load('https://threejs.org/examples/fonts/gentilis_bold.typeface.json', (font) => {
-            const mainSign = new THREE.Mesh(new TextGeometry('THE HEALING PARADIGM', { font, size: 2.2, height: 0.5 }), new THREE.MeshStandardMaterial({color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.5}));
-            mainSign.geometry.center(); mainSign.position.set(0, 15, 2); scene.add(mainSign);
+        // --- NEON SIGNS (PURPLE & YELLOW CURSIVE) ---
+        const fontLoader = new FontLoader();
+        fontLoader.load('https://threejs.org/examples/fonts/helvetiker_bold.typeface.json', (font) => {
+            const createCursiveNeon = (text, x, y, z, rotY, name) => {
+                const group = new THREE.Group();
+                const coreMat = new THREE.MeshStandardMaterial({color: 0x9400D3, emissive: 0x9400D3, emissiveIntensity: 3});
+                const glowMat = new THREE.MeshStandardMaterial({color: 0xFFFF00, emissive: 0xFFFF00, emissiveIntensity: 1.5});
+                
+                const textGeo = new TextGeometry(text, { font, size: 1.5, height: 0.1 });
+                const core = new THREE.Mesh(textGeo, coreMat);
+                const glow = new THREE.Mesh(textGeo, glowMat);
+                glow.scale.set(1.1, 1.1, 1.1); glow.position.z = -0.05;
+                
+                group.add(glow, core);
+                group.position.set(x, y, z); group.rotation.y = rotY;
+                group.children.forEach(c => c.name = name);
+                scene.add(group);
+            };
+            createCursiveNeon('Clothing', -29.5, 6, -35, Math.PI/2, "clothing_rack");
+            createCursiveNeon('Books', 29.5, 8, -35, -Math.PI/2, "bookshelf");
         });
 
-        // --- ANIMATION & INTERACTION ---
+        // --- INTERACTION ---
         window.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('nav-btn')) return;
             mouse.x = (e.clientX/window.innerWidth)*2-1; mouse.y = -(e.clientY/window.innerHeight)*2+1;
@@ -163,12 +164,12 @@
                     if (recordState === 'table') {
                         recordState = 'floating';
                         new TWEEN.Tween(amb).to({ intensity: 0.1 }, 400).start();
-                        new TWEEN.Tween(recordSpotlight).to({ intensity: 4000 }, 400).start();
+                        new TWEEN.Tween(recordSpotlight).to({ intensity: 4500 }, 400).start();
                         new TWEEN.Tween(record.position).to({ y: -0.2, z: -8 }, 1000).easing(TWEEN.Easing.Quadratic.Out).start();
-                        new TWEEN.Tween(record.rotation).to({ x: Math.PI / 2 }, 1000).start();
+                        new TWEEN.Tween(record.rotation).to({ x: Math.PI / 2.2 }, 1000).start(); // Slight tilt to face front
                     } else if (recordState === 'floating') {
                         recordState = 'counter';
-                        new TWEEN.Tween(amb).to({ intensity: 1.0 }, 400).start(); 
+                        new TWEEN.Tween(amb).to({ intensity: 0.8 }, 400).start(); 
                         new TWEEN.Tween(recordSpotlight).to({ intensity: 0 }, 400).start();
                         new TWEEN.Tween(record.position).to({ x: 0, y: -3.4, z: -46 }, 1000).start();
                         new TWEEN.Tween(record.rotation).to({ x: 0 }, 1000).start();
@@ -179,10 +180,7 @@
             }
         });
 
-        document.getElementById('buy-btn').addEventListener('click', () => {
-            isDancing = true; isPlaying = true;
-            new TWEEN.Tween(record.position).to({ x: -4, y: -1.75, z: -45 }, 800).start();
-        });
+        document.getElementById('buy-btn').addEventListener('click', () => { isDancing = true; isPlaying = true; new TWEEN.Tween(record.position).to({ x: -4, y: -1.75, z: -45 }, 800).start(); });
 
         camera.position.set(0, 0, 45);
 
@@ -190,31 +188,24 @@
             requestAnimationFrame(animate); TWEEN.update();
             if (isPlaying) { turntable.rotation.y += 0.1; record.rotation.y += 0.1; }
             
-            // Spotlight follows record
+            // Spotlight fixed to front of record
             if (recordState === 'floating') {
-                recordSpotlight.position.set(record.position.x, record.position.y + 10, record.position.z);
+                recordSpotlight.position.set(record.position.x, record.position.y + 2, record.position.z + 10);
             }
 
-            if (isWaving) { armR.rotation.z = Math.sin(Date.now() * 0.01) * 0.6 + 2.4; }
-            else if (isDancing) {
-                // THE SMEEZ
+            if (isDancing) {
                 const t = Date.now() * 0.007;
                 const phase = Math.sin(t); 
+                clerkGroup.position.x = phase * 2.5;
+                clerkGroup.position.y = Math.abs(Math.cos(t * 2)) * 0.5;
+                clerkGroup.rotation.y = phase * 0.5; 
                 
-                clerkGroup.position.x = phase * 2; // Side-to-side bounce
-                clerkGroup.position.y = Math.abs(Math.cos(t * 2)) * 0.4; // Vertical hop
-                clerkGroup.rotation.y = phase * 0.4; // Torso twist
-                
-                if (phase > 0) { // Right side bounce
-                    armR.rotation.z = 2.8; // Right arm high
-                    armL.rotation.z = Math.sin(t*5) * 0.5; // Left arm low rotation
-                } else { // Left side bounce
-                    armL.rotation.z = 2.8; // Left arm high
-                    armR.rotation.z = Math.sin(t*5) * 0.5; // Right arm low rotation
-                }
+                // Head locks onto camera
+                head.lookAt(camera.position);
+
+                if (phase > 0) { armR.rotation.z = 2.8; armL.rotation.z = Math.sin(t*5) * 0.5; } 
+                else { armL.rotation.z = 2.8; armR.rotation.z = Math.sin(t*5) * 0.5; }
             }
-            
-            if (camera.position.z < 0) camera.lookAt(0, -2, -52); else camera.lookAt(0, 0, 0);
             renderer.render(scene, camera);
         }
         animate();
