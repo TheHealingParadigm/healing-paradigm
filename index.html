@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Healing Paradigm</title>
+    <title>The Healing Paradigm - Boutique</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #89CFF0; font-family: 'Courier New', Courier, monospace; }
         #ui-container { position: absolute; bottom: 40px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 100; pointer-events: none; }
@@ -59,6 +59,7 @@
         let currentState = 'outside', recordState = 'table', isDancing = false, isWaving = false;
         let armL, armR, clerkGroup, recordSpotlight, fans = [], confetti = [];
 
+        // --- LIGHTING ---
         const amb = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(amb);
 
@@ -86,23 +87,40 @@
         }
         createPalm(-25); createPalm(25);
 
-        // --- INTERIOR & CLOTHING RACK ---
+        // --- INTERIOR ROOM ---
         const interior = new THREE.Mesh(new THREE.BoxGeometry(60, 30, 100), new THREE.MeshStandardMaterial({ color: 0x89CFF0, side: THREE.BackSide }));
         interior.position.z = -50; scene.add(interior);
 
+        // 1. CLOTHING RACK (Left Wall)
         const rackGroup = new THREE.Group();
         const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 15), new THREE.MeshStandardMaterial({color: 0x333}));
         bar.rotation.z = Math.PI/2;
         rackGroup.add(bar);
         for(let i=0; i<6; i++) {
-            const shirt = new THREE.Mesh(new THREE.BoxGeometry(2, 3, 0.5), new THREE.MeshStandardMaterial({color: i%2===0 ? 0xffffff : 0x000000}));
+            const shirt = new THREE.Mesh(new THREE.BoxGeometry(2, 3, 0.5), new THREE.MeshStandardMaterial({color: i%2===0 ? 0xffffff : 0x222}));
             shirt.position.set(-6 + (i*2.5), -2, 0);
             rackGroup.add(shirt);
         }
-        rackGroup.position.set(-25, 0, -35);
-        rackGroup.rotation.y = Math.PI/2;
+        rackGroup.position.set(-29.5, 0, -35); rackGroup.rotation.y = Math.PI/2;
         scene.add(rackGroup);
 
+        // 2. BOOKSHELF (Right Wall)
+        const bookshelf = new THREE.Group();
+        const woodMat = new THREE.MeshStandardMaterial({ color: 0x4a2c2a });
+        const shelfBack = new THREE.Mesh(new THREE.BoxGeometry(10, 14, 0.5), woodMat);
+        bookshelf.add(shelfBack);
+        for(let i = -5; i <= 5; i += 3) {
+            const shelf = new THREE.Mesh(new THREE.BoxGeometry(10, 0.2, 2.5), woodMat);
+            shelf.position.y = i; shelf.position.z = 1.25; bookshelf.add(shelf);
+            for(let j = -4; j < 4; j += 0.8) {
+                const book = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2.2, 1.8), new THREE.MeshStandardMaterial({color: Math.random() * 0xffffff}));
+                book.position.set(j, i + 1.2, 1.25); bookshelf.add(book);
+            }
+        }
+        bookshelf.position.set(29.5, -1, -35); bookshelf.rotation.y = -Math.PI/2;
+        scene.add(bookshelf);
+
+        // 3. FANS & LIGHTS
         const createCeilingSet = (x, z) => {
             const ring = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.1, 16, 32), new THREE.MeshBasicMaterial({color: 0xffffff}));
             ring.rotation.x = Math.PI/2; ring.position.set(x, 14.8, z);
@@ -147,14 +165,27 @@
 
         const loader = new FontLoader();
         loader.load('https://threejs.org/examples/fonts/gentilis_bold.typeface.json', (font) => {
+            // MAIN SIGN
             const sign = new THREE.Mesh(new TextGeometry('THE HEALING PARADIGM', { font, size: 2.2, height: 0.5 }), new THREE.MeshStandardMaterial({color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.5}));
             sign.geometry.center(); sign.position.set(0, 15, 2); scene.add(sign);
-            const neon = new THREE.Mesh(new TextGeometry('CLOTHING', { font, size: 1.2, height: 0.2 }), new THREE.MeshStandardMaterial({color: 0xff00ff, emissive: 0xff00ff, emissiveIntensity: 2}));
-            neon.geometry.center(); neon.position.set(-29.5, 5, -35); neon.rotation.y = Math.PI/2; scene.add(neon);
+
+            // NEON SIGN HELPER (Purple with White Trim)
+            const createNeon = (text, x, y, z, rotY, size = 1.2) => {
+                const g = new THREE.Group();
+                const core = new THREE.Mesh(new TextGeometry(text, { font, size, height: 0.1 }), new THREE.MeshStandardMaterial({color: 0x9400D3, emissive: 0x9400D3, emissiveIntensity: 2}));
+                const trim = new THREE.Mesh(new TextGeometry(text, { font, size: size*1.05, height: 0.05 }), new THREE.MeshStandardMaterial({color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 1}));
+                core.geometry.center(); trim.geometry.center(); trim.position.z = -0.1;
+                g.add(trim, core); g.position.set(x, y, z); g.rotation.y = rotY; scene.add(g);
+            };
+
+            createNeon('CLOTHING', -29.6, 5, -35, Math.PI/2);
+            createNeon('books', 29.6, 8, -35, -Math.PI/2, 1.0); // Cursive-esque small text
+
             const hTxt = new THREE.Mesh(new TextGeometry('THP', { font, size: 0.15, height: 0.05 }), new THREE.MeshStandardMaterial({color: 0xffffff}));
             hTxt.geometry.center(); hTxt.position.set(0, -0.95, 0.5); clerkGroup.add(hTxt);
         });
 
+        // --- INTERACTION ---
         window.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('nav-btn')) return;
             mouse.x = (e.clientX/window.innerWidth)*2-1; mouse.y = -(e.clientY/window.innerHeight)*2+1;
@@ -196,16 +227,14 @@
             requestAnimationFrame(animate); TWEEN.update();
             fans.forEach(f => f.rotation.y += 0.15);
             if (isWaving) {
-                armR.rotation.z = Math.sin(Date.now() * 0.01) * 0.5 + 2.5;
+                armR.rotation.z = Math.sin(Date.now() * 0.01) * 0.6 + 2.4;
             } else if (isDancing) {
                 const t = Date.now() * 0.002;
                 const shift = Math.sin(t * 3); clerkGroup.position.x = shift * 0.8;
                 clerkGroup.position.y = Math.abs(Math.sin(t * 6)) * 0.3;
                 armL.rotation.z = shift > 0 ? Math.sin(t * 8) * 1.5 : -0.2;
                 armR.rotation.z = shift < 0 ? -Math.sin(t * 8) * 1.5 : 0.2;
-            } else {
-                armR.rotation.z = 0; armL.rotation.z = 0;
-            }
+            } else { armR.rotation.z = 0; armL.rotation.z = 0; }
             confetti.forEach(c => { if (!c.landed) { c.mesh.position.y -= c.speed; if (c.mesh.position.y <= -8) { c.mesh.position.y = -8; c.landed = true; } } });
             if (camera.position.z < 0) camera.lookAt(0, -2, -51); else camera.lookAt(0, 0, 0);
             renderer.render(scene, camera);
