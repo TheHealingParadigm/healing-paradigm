@@ -56,10 +56,9 @@
 
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
-        let currentState = 'outside', recordState = 'table', isDancing = false;
+        let currentState = 'outside', recordState = 'table', isDancing = false, isWaving = false;
         let armL, armR, clerkGroup, recordSpotlight, fans = [], confetti = [];
 
-        // --- GLOBAL LIGHTS ---
         const amb = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(amb);
 
@@ -70,7 +69,6 @@
         const whiteFrame = new THREE.Mesh(new THREE.BoxGeometry(32, 18, 2), new THREE.MeshStandardMaterial({color: 0xffffff}));
         whiteFrame.position.set(0, 2, 0); scene.add(whiteFrame);
 
-        // Clickable Door - Positioned forward at Z: 1.5 to ensure it catches clicks
         const door = new THREE.Mesh(new THREE.PlaneGeometry(6, 11), new THREE.MeshStandardMaterial({ color: 0x111, transparent: true, opacity: 0.5 }));
         door.position.set(0, 0.5, 1.5); 
         door.name = "door_trigger"; 
@@ -88,16 +86,28 @@
         }
         createPalm(-25); createPalm(25);
 
-        // --- INTERIOR ---
+        // --- INTERIOR & CLOTHING RACK ---
         const interior = new THREE.Mesh(new THREE.BoxGeometry(60, 30, 100), new THREE.MeshStandardMaterial({ color: 0x89CFF0, side: THREE.BackSide }));
         interior.position.z = -50; scene.add(interior);
+
+        const rackGroup = new THREE.Group();
+        const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 15), new THREE.MeshStandardMaterial({color: 0x333}));
+        bar.rotation.z = Math.PI/2;
+        rackGroup.add(bar);
+        for(let i=0; i<6; i++) {
+            const shirt = new THREE.Mesh(new THREE.BoxGeometry(2, 3, 0.5), new THREE.MeshStandardMaterial({color: i%2===0 ? 0xffffff : 0x000000}));
+            shirt.position.set(-6 + (i*2.5), -2, 0);
+            rackGroup.add(shirt);
+        }
+        rackGroup.position.set(-25, 0, -35);
+        rackGroup.rotation.y = Math.PI/2;
+        scene.add(rackGroup);
 
         const createCeilingSet = (x, z) => {
             const ring = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.1, 16, 32), new THREE.MeshBasicMaterial({color: 0xffffff}));
             ring.rotation.x = Math.PI/2; ring.position.set(x, 14.8, z);
             const light = new THREE.PointLight(0xffffff, 50, 40); light.position.set(x, 13, z);
             scene.add(ring, light);
-
             const fanGroup = new THREE.Group();
             for(let i=0; i<4; i++){
                 const blade = new THREE.Mesh(new THREE.BoxGeometry(6, 0.1, 1), new THREE.MeshStandardMaterial({color: 0x222}));
@@ -139,22 +149,23 @@
         loader.load('https://threejs.org/examples/fonts/gentilis_bold.typeface.json', (font) => {
             const sign = new THREE.Mesh(new TextGeometry('THE HEALING PARADIGM', { font, size: 2.2, height: 0.5 }), new THREE.MeshStandardMaterial({color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.5}));
             sign.geometry.center(); sign.position.set(0, 15, 2); scene.add(sign);
+            const neon = new THREE.Mesh(new TextGeometry('CLOTHING', { font, size: 1.2, height: 0.2 }), new THREE.MeshStandardMaterial({color: 0xff00ff, emissive: 0xff00ff, emissiveIntensity: 2}));
+            neon.geometry.center(); neon.position.set(-29.5, 5, -35); neon.rotation.y = Math.PI/2; scene.add(neon);
             const hTxt = new THREE.Mesh(new TextGeometry('THP', { font, size: 0.15, height: 0.05 }), new THREE.MeshStandardMaterial({color: 0xffffff}));
             hTxt.geometry.center(); hTxt.position.set(0, -0.95, 0.5); clerkGroup.add(hTxt);
         });
 
-        // --- INTERACTION ---
         window.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('nav-btn')) return;
             mouse.x = (e.clientX/window.innerWidth)*2-1; mouse.y = -(e.clientY/window.innerHeight)*2+1;
             raycaster.setFromCamera(mouse, camera);
             const hits = raycaster.intersectObjects(scene.children, true);
-            
             if (hits.length > 0) {
                 const clicked = hits[0].object;
                 if (clicked.name === "door_trigger" && currentState === 'outside') {
                     currentState = 'inside';
                     new TWEEN.Tween(camera.position).to({ z: -5, y: -0.5 }, 1200).start();
+                    isWaving = true; setTimeout(() => isWaving = false, 2500);
                     document.getElementById('back-btn').style.display = 'block';
                     document.getElementById('reset-btn').style.display = 'block';
                     document.getElementById('ui-text').innerText = "CLICK THE RECORD TO BROWSE";
@@ -166,7 +177,6 @@
                         new TWEEN.Tween(recordSpotlight).to({ intensity: 2500 }, 500).start();
                         new TWEEN.Tween(record.position).to({ y: -0.2, z: -8 }, 800).start();
                         new TWEEN.Tween(record.rotation).to({ x: Math.PI / 2 }, 800).start();
-                        document.getElementById('ui-text').innerText = "CLICK RECORD AGAIN TO CHECKOUT";
                     } else if (recordState === 'floating') {
                         recordState = 'counter'; currentState = 'checkout';
                         new TWEEN.Tween(amb).to({ intensity: 0.8 }, 500).start();
@@ -174,43 +184,44 @@
                         new TWEEN.Tween(record.position).to({ x: 0, y: -2.9, z: -46 }, 1000).start();
                         new TWEEN.Tween(record.rotation).to({ x: 0 }, 1000).start();
                         new TWEEN.Tween(camera.position).to({ z: -32, y: 1.5 }, 1200).start();
-                        document.getElementById('ui-text').innerText = "THE PARADIGM AWAITS";
                         setTimeout(() => { document.getElementById('buy-btn').style.display = 'block'; document.getElementById('wallet-btn').style.display = 'block'; }, 1000);
                     }
                 }
             }
         });
 
-        const celebrate = () => {
-            if (isDancing) return; isDancing = true;
-            new Audio('https://www.myinstants.com/media/sounds/ka-ching.mp3').play();
-            for(let i=0; i<150; i++) {
-                const p = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.3), new THREE.MeshBasicMaterial({color: [0xFFD700,0x800080,0xFF8C00,0x0000FF][i%4], side: 2}));
-                p.position.set(Math.random()*15-7.5, 12, -40-Math.random()*10); scene.add(p);
-                confetti.push({mesh: p, speed: Math.random()*0.07+0.05, landed: false});
-            }
-        };
-        document.getElementById('buy-btn').addEventListener('click', celebrate);
-        document.getElementById('wallet-btn').addEventListener('click', celebrate);
-        document.getElementById('reset-btn').addEventListener('click', () => location.reload());
-
         camera.position.set(0, 0, 45);
 
         function animate() {
             requestAnimationFrame(animate); TWEEN.update();
             fans.forEach(f => f.rotation.y += 0.15);
-            if (isDancing) {
+            if (isWaving) {
+                armR.rotation.z = Math.sin(Date.now() * 0.01) * 0.5 + 2.5;
+            } else if (isDancing) {
                 const t = Date.now() * 0.002;
                 const shift = Math.sin(t * 3); clerkGroup.position.x = shift * 0.8;
                 clerkGroup.position.y = Math.abs(Math.sin(t * 6)) * 0.3;
                 armL.rotation.z = shift > 0 ? Math.sin(t * 8) * 1.5 : -0.2;
                 armR.rotation.z = shift < 0 ? -Math.sin(t * 8) * 1.5 : 0.2;
+            } else {
+                armR.rotation.z = 0; armL.rotation.z = 0;
             }
             confetti.forEach(c => { if (!c.landed) { c.mesh.position.y -= c.speed; if (c.mesh.position.y <= -8) { c.mesh.position.y = -8; c.landed = true; } } });
             if (camera.position.z < 0) camera.lookAt(0, -2, -51); else camera.lookAt(0, 0, 0);
             renderer.render(scene, camera);
         }
         animate();
+        
+        document.getElementById('buy-btn').addEventListener('click', () => {
+            isDancing = true;
+            new Audio('https://www.myinstants.com/media/sounds/ka-ching.mp3').play();
+            for(let i=0; i<150; i++) {
+                const p = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.3), new THREE.MeshBasicMaterial({color: [0xFFD700,0x800080,0xFF8C00,0x0000FF][i%4], side: 2}));
+                p.position.set(Math.random()*15-7.5, 12, -40-Math.random()*10); scene.add(p);
+                confetti.push({mesh: p, speed: Math.random()*0.07+0.05, landed: false});
+            }
+        });
+        document.getElementById('reset-btn').addEventListener('click', () => location.reload());
     </script>
 </body>
 </html>
