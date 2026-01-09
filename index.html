@@ -57,31 +57,27 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         let currentState = 'outside', recordState = 'table', isDancing = false;
-        let armL, armR, clerkGroup, recordSpotlight, mainLight, ambientLight, confetti = [];
+        let armL, armR, clerkGroup, recordSpotlight, fans = [], confetti = [];
 
-        // --- LIGHTING ---
-        ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        // --- GLOBAL LIGHTS ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         scene.add(ambientLight);
-        mainLight = new THREE.PointLight(0xffffff, 150);
-        mainLight.position.set(0, 5, -20);
-        scene.add(mainLight);
 
-        // Targeted Spotlight for Record
-        recordSpotlight = new THREE.SpotLight(0xffffff, 0);
-        recordSpotlight.angle = 0.3;
-        recordSpotlight.penumbra = 0.1;
-        recordSpotlight.decay = 0; // Ensures the light doesn't fall off too early
-        scene.add(recordSpotlight);
-
-        // --- EXTERIOR ---
+        // --- EXTERIOR ARCHITECTURE ---
         const facade = new THREE.Mesh(new THREE.PlaneGeometry(100, 60), new THREE.MeshStandardMaterial({ color: 0x89CFF0 }));
         scene.add(facade);
-        
-        const whiteTrim = new THREE.Mesh(new THREE.BoxGeometry(32, 18, 1.5), new THREE.MeshStandardMaterial({color: 0xffffff}));
-        whiteTrim.position.set(0, 2, 0.5); scene.add(whiteTrim);
 
-        const door = new THREE.Mesh(new THREE.PlaneGeometry(6, 11), new THREE.MeshStandardMaterial({ color: 0x111, transparent: true, opacity: 0.8 }));
-        door.position.set(0, 0.5, 1.2); door.name = "door"; scene.add(door);
+        // Physical Storefront Frame
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(32, 18, 1.5), new THREE.MeshStandardMaterial({color: 0xffffff}));
+        frame.position.set(0, 2, 0.5); scene.add(frame);
+
+        // The Door (Glass with White Frame)
+        const doorGroup = new THREE.Group();
+        const doorGlass = new THREE.Mesh(new THREE.PlaneGeometry(6, 11), new THREE.MeshStandardMaterial({ color: 0x111, transparent: true, opacity: 0.3 }));
+        const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(6.5, 11.5, 0.2), new THREE.MeshStandardMaterial({color: 0xffffff, wireframe: true}));
+        doorGroup.add(doorGlass, doorFrame);
+        doorGroup.position.set(0, 0.5, 1.3); doorGlass.name = "door_trigger";
+        scene.add(doorGroup);
 
         function createPalm(x) {
             const p = new THREE.Group();
@@ -95,91 +91,92 @@
         }
         createPalm(-28); createPalm(28);
 
-        // --- INTERIOR ELEMENTS ---
+        // --- INTERIOR ROOM & FIXTURES ---
         const room = new THREE.Mesh(new THREE.BoxGeometry(60, 30, 100), new THREE.MeshStandardMaterial({ color: 0x89CFF0, side: THREE.BackSide }));
         room.position.z = -50; scene.add(room);
 
-        // Browse Table
+        // Indoor Lighting & Fans
+        const createCeilingSet = (x, z) => {
+            // Recessed Light
+            const ring = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.1, 16, 32), new THREE.MeshBasicMaterial({color: 0xffffff}));
+            ring.rotation.x = Math.PI/2; ring.position.set(x, 14.8, z);
+            const light = new THREE.PointLight(0xffffff, 40, 30); light.position.set(x, 13, z);
+            scene.add(ring, light);
+
+            // Ceiling Fan
+            const fanGroup = new THREE.Group();
+            const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.5), new THREE.MeshStandardMaterial({color: 0x333}));
+            fanGroup.add(hub);
+            for(let i=0; i<4; i++){
+                const blade = new THREE.Mesh(new THREE.BoxGeometry(6, 0.1, 1), new THREE.MeshStandardMaterial({color: 0x222}));
+                blade.position.x = 3.5; const pivot = new THREE.Group(); pivot.rotation.y = i * (Math.PI/2);
+                pivot.add(blade); fanGroup.add(pivot);
+            }
+            fanGroup.position.set(x, 14, z); fans.push(fanGroup); scene.add(fanGroup);
+        };
+        [[-15, -25], [15, -25], [-15, -45], [15, -45]].forEach(p => createCeilingSet(p[0], p[1]));
+
+        // Tables
         const browseTable = new THREE.Mesh(new THREE.BoxGeometry(8, 1.5, 5), new THREE.MeshStandardMaterial({ color: 0x5C4033 }));
         browseTable.position.set(0, -6.5, -22); scene.add(browseTable);
 
-        // CHECKOUT TABLE (The Counter)
-        const checkoutTable = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 6), new THREE.MeshStandardMaterial({ color: 0xCC5500 }));
-        checkoutTable.position.set(0, -5, -45); scene.add(checkoutTable);
+        const checkoutCounter = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 6), new THREE.MeshStandardMaterial({ color: 0xCC5500 }));
+        checkoutCounter.position.set(0, -5, -45); scene.add(checkoutCounter);
 
+        // Record
         const recordMat = new THREE.MeshPhysicalMaterial({ color: 0x050505, roughness: 0.05, metalness: 0.8, clearcoat: 1.0 });
         const record = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 0.05, 64), recordMat);
         record.position.set(0, -5.7, -22); record.name = "record"; scene.add(record);
 
-        // --- CLERK WITH BEANIE ON TOP ---
+        recordSpotlight = new THREE.SpotLight(0xffffff, 0);
+        recordSpotlight.angle = 0.4; recordSpotlight.penumbra = 0.2; recordSpotlight.decay = 0;
+        scene.add(recordSpotlight);
+
+        // --- CLERK ---
         clerkGroup = new THREE.Group();
         const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), new THREE.MeshStandardMaterial({color: 0xffdbac})); 
         head.position.y = -1.6;
-        
-        // Corrected Beanie (Sits on top of head)
         const beanie = new THREE.Mesh(new THREE.SphereGeometry(0.62, 16, 16, 0, Math.PI * 2, 0, Math.PI / 1.8), new THREE.MeshStandardMaterial({color: 0x0000FF}));
-        beanie.position.y = -1.65; // Matches head position exactly to sit on top
+        beanie.position.y = -1.65;
         clerkGroup.add(head, beanie);
-
         const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.8, 1.8, 4, 8), new THREE.MeshStandardMaterial({color: 0x89CFF0})); 
         body.position.y = -3.5;
         armL = new THREE.Group(); armL.position.set(-1.0, -2.5, 0); const lM = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 1.2, 4, 8), new THREE.MeshStandardMaterial({color: 0x89CFF0})); lM.position.y = 0.6; armL.add(lM);
         armR = new THREE.Group(); armR.position.set(1.0, -2.5, 0); const rM = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 1.2, 4, 8), new THREE.MeshStandardMaterial({color: 0x89CFF0})); rM.position.y = 0.6; armR.add(rM);
         clerkGroup.add(body, armL, armR); clerkGroup.position.set(0, 0, -51); scene.add(clerkGroup);
 
-        // --- TEXT LOADER (Signage) ---
         const loader = new FontLoader();
         loader.load('https://threejs.org/examples/fonts/gentilis_bold.typeface.json', (font) => {
-            // MAIN STORE SIGN
-            const signTxt = new THREE.Mesh(new TextGeometry('THE HEALING PARADIGM', { font, size: 2.2, height: 0.5 }), new THREE.MeshStandardMaterial({color: 0xffffff}));
-            signTxt.geometry.center();
-            signTxt.position.set(0, 15, 2); // Placed above the trim
-            scene.add(signTxt);
-
-            // BEANIE LOGO
+            const sign = new THREE.Mesh(new TextGeometry('THE HEALING PARADIGM', { font, size: 2.2, height: 0.5 }), new THREE.MeshStandardMaterial({color: 0xffffff}));
+            sign.geometry.center(); sign.position.set(0, 15, 2); scene.add(sign);
             const hTxt = new THREE.Mesh(new TextGeometry('THP', { font, size: 0.15, height: 0.05 }), new THREE.MeshStandardMaterial({color: 0xffffff}));
             hTxt.geometry.center(); hTxt.position.set(0, -0.95, 0.5); clerkGroup.add(hTxt);
         });
 
-        // --- INTERACTION LOGIC ---
-        function celebrate() {
-            if (isDancing) return;
-            isDancing = true;
-            new Audio('https://www.myinstants.com/media/sounds/ka-ching.mp3').play();
-            const colors = [0xFFD700, 0x800080, 0xFF8C00, 0x0000FF];
-            for(let i=0; i<150; i++) {
-                const p = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 0.35), new THREE.MeshBasicMaterial({color: colors[i%4], side: 2}));
-                p.position.set(Math.random()*15-7.5, 12, -40 - Math.random()*10);
-                scene.add(p);
-                confetti.push({mesh: p, speed: Math.random()*0.07+0.05, landed: false});
-            }
-        }
-
+        // --- INTERACTION ---
         window.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('nav-btn')) return;
             mouse.x = (e.clientX/window.innerWidth)*2-1; mouse.y = -(e.clientY/window.innerHeight)*2+1;
             raycaster.setFromCamera(mouse, camera);
             const hits = raycaster.intersectObjects(scene.children, true);
             if (hits.length > 0) {
-                const obj = hits[0].object;
-                if (obj.name === "door" && currentState === 'outside') {
+                const name = hits[0].object.name;
+                if (name === "door_trigger" && currentState === 'outside') {
                     currentState = 'inside';
                     new TWEEN.Tween(camera.position).to({ z: -5, y: -0.5 }, 1200).start();
                     document.getElementById('back-btn').style.display = 'block';
                     document.getElementById('reset-btn').style.display = 'block';
-                } else if (obj.name === "record") {
+                } else if (name === "record") {
                     if (recordState === 'table') {
                         recordState = 'floating';
                         new TWEEN.Tween(ambientLight).to({ intensity: 0.02 }, 500).start();
-                        // Position Spotlight to specifically strike the record face
-                        recordSpotlight.position.set(2, 5, -5); 
-                        recordSpotlight.target = record;
+                        recordSpotlight.position.set(2, 5, -5); recordSpotlight.target = record;
                         new TWEEN.Tween(recordSpotlight).to({ intensity: 2000 }, 500).start();
                         new TWEEN.Tween(record.position).to({ y: -0.2, z: -8 }, 800).start();
                         new TWEEN.Tween(record.rotation).to({ x: Math.PI / 2 }, 800).start();
                     } else if (recordState === 'floating') {
                         recordState = 'counter'; currentState = 'checkout';
-                        new TWEEN.Tween(ambientLight).to({ intensity: 0.8 }, 500).start();
+                        new TWEEN.Tween(ambientLight).to({ intensity: 0.6 }, 500).start();
                         new TWEEN.Tween(recordSpotlight).to({ intensity: 0 }, 500).start();
                         new TWEEN.Tween(record.position).to({ x: 0, y: -2.9, z: -46 }, 1000).start();
                         new TWEEN.Tween(record.rotation).to({ x: 0 }, 1000).start();
@@ -190,6 +187,16 @@
             }
         });
 
+        const celebrate = () => {
+            if (isDancing) return;
+            isDancing = true;
+            new Audio('https://www.myinstants.com/media/sounds/ka-ching.mp3').play();
+            for(let i=0; i<150; i++) {
+                const p = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.3), new THREE.MeshBasicMaterial({color: [0xFFD700,0x800080,0xFF8C00,0x0000FF][i%4], side: 2}));
+                p.position.set(Math.random()*15-7.5, 12, -40-Math.random()*10); scene.add(p);
+                confetti.push({mesh: p, speed: Math.random()*0.07+0.05, landed: false});
+            }
+        };
         document.getElementById('buy-btn').addEventListener('click', celebrate);
         document.getElementById('wallet-btn').addEventListener('click', celebrate);
         document.getElementById('reset-btn').addEventListener('click', () => location.reload());
@@ -198,6 +205,7 @@
 
         function animate() {
             requestAnimationFrame(animate); TWEEN.update();
+            fans.forEach(f => f.rotation.y += 0.1);
             if (isDancing) {
                 const t = Date.now() * 0.002;
                 const shift = Math.sin(t * 3); clerkGroup.position.x = shift * 0.8;
@@ -206,10 +214,7 @@
                 armR.rotation.z = shift < 0 ? -Math.sin(t * 8) * 1.5 : 0.2;
             }
             confetti.forEach(c => {
-                if (!c.landed) {
-                    c.mesh.position.y -= c.speed;
-                    if (c.mesh.position.y <= -8) { c.mesh.position.y = -8; c.landed = true; }
-                }
+                if (!c.landed) { c.mesh.position.y -= c.speed; if (c.mesh.position.y <= -8) { c.mesh.position.y = -8; c.landed = true; } }
             });
             if (camera.position.z < 0) camera.lookAt(0, -2, -51); else camera.lookAt(0, 0, 0);
             renderer.render(scene, camera);
