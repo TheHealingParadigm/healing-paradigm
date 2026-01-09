@@ -47,34 +47,29 @@
         import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
         import TWEEN from 'tween';
 
-        // --- 1. REALISTIC RENDERER SETUP ---
+        // --- 1. RENDERER ---
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.outputColorSpace = THREE.SRGBColorSpace; 
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.2; 
+        renderer.toneMappingExposure = 1.1; 
         document.body.appendChild(renderer.domElement);
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0a0a0a); 
-
+        scene.background = new THREE.Color(0x050505); 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
-        // Variables for state
         let currentState = 'outside', recordState = 'table', isDancing = false, isPlaying = false;
         let armL, armR, head, clerkGroup, recordSpotlight, turntable, confetti = [];
+        let fans = [];
 
-        // --- 2. PHYSICALLY CORRECT LIGHTS ---
-        const amb = new THREE.AmbientLight(0xffe4b5, 0.3); // Warm moonlight
+        // --- 2. LIGHTING ---
+        const amb = new THREE.AmbientLight(0xffe4b5, 0.2); 
         scene.add(amb);
 
-        const interiorCeilingLight = new THREE.PointLight(0xffffff, 150, 100);
-        interiorCeilingLight.position.set(0, 20, -35);
-        scene.add(interiorCeilingLight);
-
-        // --- 3. EXTERIOR ARCHITECTURE ---
+        // --- 3. EXTERIOR ---
         const buildingGroup = new THREE.Group();
         const walls = new THREE.Mesh(new THREE.BoxGeometry(60, 35, 10), new THREE.MeshStandardMaterial({ color: 0x89CFF0, roughness: 0.7 }));
         walls.position.set(0, 10, -3);
@@ -92,7 +87,7 @@
             const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 15), new THREE.MeshStandardMaterial({color: 0x111111, roughness: 0.9}));
             const lHead = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), new THREE.MeshStandardMaterial({color: 0xffffee, emissive: 0xffaa00, emissiveIntensity: 2}));
             lHead.position.y = 7.5;
-            const light = new THREE.PointLight(0xffaa00, 400, 40); light.position.y = 7.5;
+            const light = new THREE.PointLight(0xffaa00, 300, 40); light.position.y = 7.5;
             lamp.add(pole, lHead, light); lamp.position.set(x, 0, 12); scene.add(lamp);
         }
         createStreetLamp(-20); createStreetLamp(20);
@@ -112,12 +107,43 @@
         const door = new THREE.Mesh(new THREE.PlaneGeometry(8, 16), new THREE.MeshStandardMaterial({ color: 0x111, transparent: true, opacity: 0.6 }));
         door.position.set(0, 5, 2.2); door.name = "door_trigger"; scene.add(door);
 
-        // --- 4. INTERIOR ASSETS ---
+        // --- 4. INTERIOR & PLANT WALL ---
         const interior = new THREE.Mesh(new THREE.BoxGeometry(70, 40, 100), new THREE.MeshStandardMaterial({ color: 0x89CFF0, side: THREE.BackSide, roughness: 0.8 }));
         interior.position.z = -50; scene.add(interior);
 
+        // Tropical Plant Wall (Behind Checkout)
+        const plantWall = new THREE.Mesh(new THREE.PlaneGeometry(30, 38), new THREE.MeshStandardMaterial({ color: 0x1a3300, roughness: 0.9 }));
+        plantWall.position.set(0, 1, -99.5);
+        for(let i=0; i<150; i++) {
+            const leaf = new THREE.Mesh(new THREE.SphereGeometry(Math.random()*1.5+1, 8, 8), new THREE.MeshStandardMaterial({color: 0x228B22}));
+            leaf.position.set(Math.random()*28-14, Math.random()*38-19, 0.5);
+            leaf.scale.z = 0.1; leaf.rotation.z = Math.random()*Math.PI;
+            plantWall.add(leaf);
+        }
+        scene.add(plantWall);
+
+        // --- 5. CEILING FANS ---
+        function createFan(x, z) {
+            const fanGroup = new THREE.Group();
+            const motor = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.8), new THREE.MeshStandardMaterial({color: 0x111}));
+            const lightCover = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 16), new THREE.MeshStandardMaterial({color: 0xffffee, emissive: 0xffffff, emissiveIntensity: 0.5}));
+            lightCover.position.y = -0.5;
+            const fanLight = new THREE.PointLight(0xffe4b5, 150, 40); fanLight.position.y = -1;
+            const bladePivot = new THREE.Group();
+            for(let i=0; i<4; i++) {
+                const blade = new THREE.Mesh(new THREE.BoxGeometry(6, 0.1, 1.5), new THREE.MeshStandardMaterial({color: 0x222}));
+                blade.position.x = 3.5; blade.rotation.y = i * Math.PI/2;
+                bladePivot.add(blade);
+            }
+            fanGroup.add(motor, lightCover, fanLight, bladePivot);
+            fanGroup.position.set(x, 15, z); scene.add(fanGroup);
+            fans.push(bladePivot);
+        }
+        createFan(-15, -25); createFan(15, -25); createFan(-15, -70); createFan(15, -70);
+
+        // Furniture
         const rackGroup = new THREE.Group();
-        const rackFrame = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 18), new THREE.MeshStandardMaterial({color: 0x222, metalness: 0.5}));
+        const rackFrame = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 18), new THREE.MeshStandardMaterial({color: 0x222}));
         rackFrame.rotation.z = Math.PI/2; rackGroup.add(rackFrame);
         for(let i=0; i<8; i++) {
             const shirt = new THREE.Mesh(new THREE.BoxGeometry(1.8, 3.5, 0.6), new THREE.MeshStandardMaterial({color: i%2===0 ? 0xf5f5f5 : 0x1a1a1a, roughness: 0.9}));
@@ -143,26 +169,20 @@
         const browseTable = new THREE.Mesh(new THREE.BoxGeometry(10, 6, 6), new THREE.MeshStandardMaterial({ color: 0x5C4033, roughness: 0.8 }));
         browseTable.position.set(0, -12, -22); scene.add(browseTable);
 
-        const recordPlayer = new THREE.Group();
-        const pBase = new THREE.Mesh(new THREE.BoxGeometry(5, 1, 4), new THREE.MeshStandardMaterial({color: 0x008080, roughness: 0.5}));
-        turntable = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.2, 32), new THREE.MeshStandardMaterial({color: 0x111111, roughness: 0.3}));
-        turntable.position.y = 0.6; recordPlayer.add(pBase, turntable);
-        recordPlayer.position.set(-5, -3.4, -46); scene.add(recordPlayer);
-
-        const record = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 0.05, 64), new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 0.3, metalness: 0.1 }));
+        // --- 6. RECORD (GLARE FIXED) ---
+        const record = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 0.05, 64), new THREE.MeshStandardMaterial({ color: 0x020202, roughness: 0.6, metalness: 0.2 }));
         record.position.set(0, -8.95, -22); record.name = "record"; scene.add(record);
-
-        recordSpotlight = new THREE.SpotLight(0xffffff, 0, 50, 0.5, 0.5, 1);
+        recordSpotlight = new THREE.SpotLight(0xffffff, 0, 60, 0.4, 0.8, 1);
         scene.add(recordSpotlight); recordSpotlight.target = record;
 
+        // Clerk
         clerkGroup = new THREE.Group();
-        head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 16), new THREE.MeshStandardMaterial({color: 0x5c4033, roughness: 0.8})); head.position.y = -1.6;
-        const torso = new THREE.Mesh(new THREE.CapsuleGeometry(1, 2.5, 4, 8), new THREE.MeshStandardMaterial({color: 0x222222, roughness: 0.9})); torso.position.y = -3.8;
+        head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 16), new THREE.MeshStandardMaterial({color: 0x5c4033})); head.position.y = -1.6;
+        const torso = new THREE.Mesh(new THREE.CapsuleGeometry(1, 2.5, 4, 8), new THREE.MeshStandardMaterial({color: 0x222222})); torso.position.y = -3.8;
         armL = new THREE.Group(); armL.position.set(-1.2, -3, 0); const lM = new THREE.Mesh(new THREE.CapsuleGeometry(0.25, 1.8, 4, 8), new THREE.MeshStandardMaterial({color: 0x5c4033})); lM.position.y = -0.8; armL.add(lM);
         armR = new THREE.Group(); armR.position.set(1.2, -3, 0); const rM = new THREE.Mesh(new THREE.CapsuleGeometry(0.25, 1.8, 4, 8), new THREE.MeshStandardMaterial({color: 0x5c4033})); rM.position.y = -0.8; armR.add(rM);
         clerkGroup.add(torso, head, armL, armR); clerkGroup.position.set(0, 0, -52); scene.add(clerkGroup);
 
-        // --- 5. INTERACTION LOGIC ---
         const fontLoader = new FontLoader();
         fontLoader.load('https://threejs.org/examples/fonts/helvetiker_bold.typeface.json', (font) => {
             const storeSign = new THREE.Mesh(new TextGeometry('THE HEALING PARADIGM', { font, size: 2.8, height: 0.5 }), new THREE.MeshStandardMaterial({color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 1}));
@@ -179,6 +199,7 @@
             createNeon('Books', 29.5, 12, -35, -Math.PI/2);
         });
 
+        // --- 7. ACTIONS ---
         window.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('nav-btn')) return;
             mouse.x = (e.clientX/window.innerWidth)*2-1; mouse.y = -(e.clientY/window.innerHeight)*2+1;
@@ -193,13 +214,13 @@
                 } else if (obj.name === "record") {
                     if (recordState === 'table') {
                         recordState = 'view';
-                        new TWEEN.Tween(amb).to({ intensity: 0.1 }, 400).start();
-                        new TWEEN.Tween(recordSpotlight).to({ intensity: 4000 }, 400).start();
+                        new TWEEN.Tween(amb).to({ intensity: 0.05 }, 400).start();
+                        new TWEEN.Tween(recordSpotlight).to({ intensity: 4500 }, 400).start();
                         new TWEEN.Tween(record.position).to({ y: -0.2, z: -8 }, 1000).start();
                         new TWEEN.Tween(record.rotation).to({ x: Math.PI / 2.2 }, 1000).start();
                     } else if (recordState === 'view') {
                         recordState = 'checkout';
-                        new TWEEN.Tween(amb).to({ intensity: 0.3 }, 400).start();
+                        new TWEEN.Tween(amb).to({ intensity: 0.2 }, 400).start();
                         new TWEEN.Tween(recordSpotlight).to({ intensity: 0 }, 400).start();
                         new TWEEN.Tween(record.position).to({ x: 3, y: -3.45, z: -46 }, 1000).start();
                         new TWEEN.Tween(record.rotation).to({ x: 0 }, 1000).start();
@@ -226,7 +247,8 @@
         function animate() {
             requestAnimationFrame(animate); TWEEN.update();
             if (recordState === 'view') { recordSpotlight.position.set(record.position.x, record.position.y + 2, record.position.z + 10); }
-            if (isPlaying) { turntable.rotation.y += 0.1; record.rotation.y += 0.1; }
+            if (isPlaying) { record.rotation.y += 0.1; }
+            fans.forEach(f => f.rotation.y += 0.05);
             confetti.forEach(c => { c.mesh.position.y -= c.speed; c.mesh.rotation.z += 0.1; });
             if (isDancing) {
                 const t = Date.now() * 0.004; const ph = Math.sin(t); 
