@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Healing Paradigm - Smeez Edition</title>
+    <title>The Healing Paradigm - Final Build</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', Courier, monospace; }
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', sans-serif; }
         #ui-container { position: absolute; bottom: 40px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 100; pointer-events: none; }
-        #ui-text { color: #00ffff; font-weight: bold; letter-spacing: 2px; background: rgba(0,0,0,0.85); padding: 12px 30px; border-radius: 50px; text-align: center; border: 2px solid #00ffff; pointer-events: auto; }
+        #ui-text { color: #00ffff; font-weight: bold; background: rgba(0,0,0,0.8); padding: 12px 30px; border-radius: 50px; text-align: center; border: 2px solid #00ffff; pointer-events: auto; }
         .btn-group { display: flex; gap: 10px; pointer-events: auto; }
-        .nav-btn { padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; display: none; }
+        .nav-btn { padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; display: none; }
         #buy-btn { background: #008000; color: white; }
         #wallet-btn { background: #512DA8; color: white; }
-        #reset-btn { background: #333; color: white; display: none; }
+        #back-btn { background: #CC5500; color: white; }
     </style>
 </head>
 <body>
@@ -20,9 +20,9 @@
         <div class="btn-group">
             <button id="buy-btn" class="nav-btn">BUY NOW</button>
             <button id="wallet-btn" class="nav-btn">CONNECT WALLET</button>
-            <button id="reset-btn" class="nav-btn">RESET STORE ↺</button>
+            <button id="back-btn" class="nav-btn">GO BACK</button>
         </div>
-        <div id="ui-text">CLICK THE BABY BLUE DOOR TO ENTER</div>
+        <div id="ui-text">CLICK THE DOOR TO ENTER</div>
     </div>
 
     <script type="importmap">
@@ -51,67 +51,82 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
-        let currentState = 'outside', recordState = 'table', isDancing = false, scrollGalaxy = false;
-        let fans = [], palms = [], record, spot, windowTint, galaxyTex;
-        let clerkGroup, upperArmL, upperArmR, legL, legR, torso;
+        let currentState = 'outside', recordState = 'table', isDancing = false;
+        let record, spot, clerk, armL, armR, body, windowTint, galaxyTex, confetti = [];
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
-        // --- EXTERIOR ---
+        // --- 1. EXTERIOR & SIDEWALK ---
         const babyBlue = new THREE.MeshStandardMaterial({ color: 0x89CFF0 });
-        const building = new THREE.Mesh(new THREE.BoxGeometry(75, 45, 10), babyBlue);
-        building.position.set(0, 15, -5); scene.add(building);
+        const building = new THREE.Mesh(new THREE.BoxGeometry(80, 50, 15), babyBlue);
+        building.position.set(0, 20, -10); scene.add(building);
 
-        const door = new THREE.Mesh(new THREE.BoxGeometry(10, 18, 1.5), babyBlue);
-        door.position.set(0, 4.5, 0.5); door.name = "door_trigger"; scene.add(door);
+        const door = new THREE.Mesh(new THREE.BoxGeometry(10, 18, 2), babyBlue);
+        door.position.set(0, 4.5, -2); door.name = "door_trigger"; scene.add(door);
 
-        windowTint = new THREE.Mesh(new THREE.PlaneGeometry(68, 38), new THREE.MeshBasicMaterial({color: 0x000, transparent: true, opacity: 0.95}));
-        windowTint.position.z = 0.2; scene.add(windowTint);
+        // Sidewalk
+        const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(100, 1, 30), new THREE.MeshStandardMaterial({color: 0x444}));
+        sidewalk.position.set(0, -5.5, 15); scene.add(sidewalk);
 
-        // --- INTERIOR DESIGN ---
-        const loader = new THREE.TextureLoader();
-        galaxyTex = loader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'); // Represents Starfield Galaxy
-        galaxyTex.wrapS = galaxyTex.wrapT = THREE.RepeatWrapping;
-        
-        const spaceRoom = new THREE.Mesh(new THREE.BoxGeometry(90, 55, 120), new THREE.MeshStandardMaterial({ map: galaxyTex, side: THREE.BackSide, emissive: 0x222244 }));
-        spaceRoom.position.z = -60; scene.add(spaceRoom);
+        function addStreetLamp(x) {
+            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 15), new THREE.MeshStandardMaterial({color: 0x111}));
+            const light = new THREE.Mesh(new THREE.SphereGeometry(1), new THREE.MeshBasicMaterial({color: 0xffffaa}));
+            light.position.y = 7.5; const pLight = new THREE.PointLight(0xffaa00, 500, 40); pLight.position.y = 7.5;
+            const g = new THREE.Group(); g.add(pole, light, pLight); g.position.set(x, 2, 20); scene.add(g);
+        }
+        addStreetLamp(-35); addStreetLamp(35);
 
-        const marbleTex = loader.load('https://threejs.org/examples/textures/floors/FloorsCheckerboard_S_Diffuse.jpg'); // Using high contrast for Marble feel
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(90, 120), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1 }));
-        floor.rotation.x = -Math.PI/2; floor.position.set(0, -5.4, -60); scene.add(floor);
+        function addPalm(x) {
+            const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 25), new THREE.MeshStandardMaterial({color: 0x664422}));
+            const lv = new THREE.Group(); lv.position.y = 12.5;
+            for(let i=0; i<6; i++){
+                const l = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 10), new THREE.MeshStandardMaterial({color: 0x228B22}));
+                l.rotation.z = 1.4; l.rotation.y = i * Math.PI/3; lv.add(l);
+            }
+            const p = new THREE.Group(); p.add(tr, lv); p.position.set(x, 7, 25); scene.add(p);
+        }
+        addPalm(-48); addPalm(48);
 
-        const ledStrip = new THREE.Mesh(new THREE.BoxGeometry(89, 0.5, 0.5), new THREE.MeshBasicMaterial({color: 0x00ffff}));
-        ledStrip.position.set(0, 20, -119); scene.add(ledStrip);
+        windowTint = new THREE.Mesh(new THREE.PlaneGeometry(70, 40), new THREE.MeshBasicMaterial({color: 0x000, transparent: true, opacity: 0.95}));
+        windowTint.position.z = -2.4; scene.add(windowTint);
 
-        // --- HUMAN-FIGURE CLERK (SMEEZ READY) ---
-        clerkGroup = new THREE.Group();
-        const skinMat = new THREE.MeshStandardMaterial({color: 0x5c4033});
-        const clothesMat = new THREE.MeshStandardMaterial({color: 0x222});
+        // --- 2. INTERIOR (GALAXY & MARBLE) ---
+        galaxyTex = new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'); // Represents Galaxy
+        galaxyTex.wrapS = galaxyTex.wrapT = THREE.RepeatWrapping; galaxyTex.repeat.set(2, 2);
+        const intWalls = new THREE.Mesh(new THREE.BoxGeometry(90, 60, 120), new THREE.MeshStandardMaterial({ map: galaxyTex, side: THREE.BackSide, emissive: 0x222244 }));
+        intWalls.position.z = -65; intWalls.name = "wall_exit"; scene.add(intWalls);
 
-        torso = new THREE.Mesh(new THREE.BoxGeometry(3, 4.5, 1.5), clothesMat);
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.9), skinMat); head.position.y = 3.2;
+        const marbleFloor = new THREE.Mesh(new THREE.PlaneGeometry(90, 120), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1 }));
+        marbleFloor.rotation.x = -Math.PI/2; marbleFloor.position.set(0, -5.4, -65); scene.add(marbleFloor);
 
-        upperArmL = new THREE.Group(); upperArmL.position.set(-1.8, 2, 0);
-        const ualMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 2.5), skinMat); ualMesh.position.y = -1; upperArmL.add(ualMesh);
+        // --- 3. PROPS & CLERK ---
+        const table = new THREE.Mesh(new THREE.BoxGeometry(12, 6, 8), new THREE.MeshStandardMaterial({color: 0x3d2b1f}));
+        table.position.set(0, -2.5, -25); scene.add(table);
 
-        upperArmR = new THREE.Group(); upperArmR.position.set(1.8, 2, 0);
-        const uarMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 2.5), skinMat); uarMesh.position.y = -1; upperArmR.add(uarMesh);
+        record = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 0.1, 64), new THREE.MeshStandardMaterial({color: 0x111, metalness: 0.8}));
+        record.position.set(0, 0.6, -25); record.name = "record_trigger"; scene.add(record);
 
-        legL = new THREE.Group(); legL.position.set(-0.8, -2.2, 0);
-        const legLMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.3, 4), clothesMat); legLMesh.position.y = -2; legL.add(legLMesh);
-
-        legR = new THREE.Group(); legR.position.set(0.8, -2.2, 0);
-        const legRMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.3, 4), clothesMat); legRMesh.position.y = -2; legR.add(legRMesh);
-
-        clerkGroup.add(torso, head, upperArmL, upperArmR, legL, legR);
-        clerkGroup.position.set(0, -1.2, -65); scene.add(clerkGroup);
-
-        // --- PROPS ---
-        record = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 0.1, 64), new THREE.MeshStandardMaterial({color: 0x111, metalness: 0.9}));
-        record.position.set(0, 0.6, -25); record.name = "record"; scene.add(record);
         spot = new THREE.SpotLight(0xffffff, 0, 100, 0.4); spot.position.set(0, 20, -25); scene.add(spot); spot.target = record;
 
-        // --- INTERACTION ---
+        const counter = new THREE.Mesh(new THREE.BoxGeometry(20, 8, 8), new THREE.MeshStandardMaterial({color: 0xCC5500}));
+        counter.position.set(0, -1.5, -60); scene.add(counter);
+
+        // Segmented Human Clerk
+        clerk = new THREE.Group();
+        body = new THREE.Mesh(new THREE.CapsuleGeometry(1.2, 5), new THREE.MeshStandardMaterial({color: 0x222})); body.position.y = 5;
+        armL = new THREE.Group(); armL.position.set(-1.5, 7.5, 0); const a1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 3), new THREE.MeshStandardMaterial({color: 0x5c4033})); a1.position.y = -1.5; armL.add(a1);
+        armR = new THREE.Group(); armR.position.set(1.5, 7.5, 0); const a2 = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 3), new THREE.MeshStandardMaterial({color: 0x5c4033})); a2.position.y = -1.5; armR.add(a2);
+        clerk.add(body, armL, armR); clerk.position.set(0, -5, -70); scene.add(clerk);
+
+        // --- 4. ANIMATION & LOGIC ---
+        const exitStore = () => {
+            currentState = 'outside'; recordState = 'table'; isDancing = false;
+            new TWEEN.Tween(camera.position).to({x: 0, y: 12, z: 80}, 1200).start();
+            new TWEEN.Tween(windowTint.material).to({opacity: 0.95}, 500).start();
+            document.querySelectorAll('.nav-btn').forEach(b => b.style.display = 'none');
+            document.getElementById('ui-text').innerText = "CLICK THE DOOR TO ENTER";
+        };
+
         window.addEventListener('mousedown', (e) => {
             mouse.x = (e.clientX/window.innerWidth)*2-1; mouse.y = -(e.clientY/window.innerHeight)*2+1;
             raycaster.setFromCamera(mouse, camera);
@@ -119,61 +134,59 @@
             if (hits.length > 0) {
                 const o = hits[0].object;
                 if (o.name === "door_trigger") {
-                    new TWEEN.Tween(camera.position).to({z: -5, y: 3}, 1000).easing(TWEEN.Easing.Quadratic.Out).start();
+                    currentState = 'inside';
+                    new TWEEN.Tween(camera.position).to({z: -5, y: 3}, 1000).start();
                     new TWEEN.Tween(windowTint.material).to({opacity: 0}, 500).start();
-                    document.getElementById('reset-btn').style.display = 'block';
-                } else if (o.name === "record") {
+                    document.getElementById('back-btn').style.display = 'block';
+                } else if (o.name === "record_trigger") {
                     if (recordState === 'table') {
                         recordState = 'view';
-                        new TWEEN.Tween(record.position).to({y: 3, z: -10}, 800).start();
+                        new TWEEN.Tween(record.position).to({y: 3.5, z: -10}, 800).start();
                         new TWEEN.Tween(record.rotation).to({x: Math.PI/2}, 800).start();
                         new TWEEN.Tween(spot).to({intensity: 5000}, 400).start();
                     } else if (recordState === 'view') {
                         recordState = 'checkout';
+                        new TWEEN.Tween(record.position).to({x: 5, y: 3, z: -60}, 800).start();
+                        new TWEEN.Tween(record.rotation).to({x: 0}, 800).start();
                         new TWEEN.Tween(camera.position).to({z: -45, y: 5}, 1000).start();
-                        new TWEEN.Tween(record.position).to({x: 6, y: 3.5, z: -55}, 800).start();
                         spot.intensity = 0;
                         document.getElementById('buy-btn').style.display = 'block';
                         document.getElementById('wallet-btn').style.display = 'block';
                     }
-                }
+                } else if (o.name === "wall_exit") { exitStore(); }
             }
         });
 
-        document.getElementById('buy-btn').addEventListener('click', () => { 
-            isDancing = true; 
-            scrollGalaxy = true;
-            document.getElementById('ui-text').innerText = "VIBING IN THE GALAXY...";
+        document.getElementById('buy-btn').addEventListener('click', () => {
+            isDancing = true;
+            new Audio('https://www.myinstants.com/media/sounds/ka-ching.mp3').play();
+            for(let i=0; i<60; i++){
+                const p = new THREE.Mesh(new THREE.PlaneGeometry(0.3,0.3), new THREE.MeshBasicMaterial({color: Math.random()*0xffffff}));
+                p.position.set(Math.random()*20-10, 15, -60); scene.add(p);
+                confetti.push({m:p, s:Math.random()*0.15+0.1});
+            }
         });
 
-        document.getElementById('reset-btn').addEventListener('click', () => location.reload());
+        document.getElementById('back-btn').addEventListener('click', exitStore);
 
         camera.position.set(0, 12, 80);
 
         function animate() {
             requestAnimationFrame(animate); TWEEN.update();
             const t = Date.now() * 0.003;
+            confetti.forEach(c => { if(c.m.position.y > -5) c.m.position.y -= c.s; });
             
-            if (scrollGalaxy) { galaxyTex.offset.x += 0.001; galaxyTex.offset.y += 0.0005; }
-
             if (isDancing) {
-                // The Smeez Dance Sequence
-                clerkGroup.position.y = -1.2 + Math.abs(Math.sin(t*5)) * 0.8; // Bounce
-                const danceCycle = Math.sin(t*5);
-                
-                if (danceCycle > 0) {
-                    upperArmL.rotation.z = 2.4; // Left arm up
-                    upperArmR.rotation.x = -1.4; // Right arm forward
-                    legL.rotation.z = 0.3; legR.rotation.z = 0;
+                // THE SMEEZ: One arm up, bouncing to sides
+                clerk.position.y = -5 + Math.abs(Math.sin(t*5)) * 1.5;
+                clerk.position.x = Math.sin(t*2.5) * 2;
+                if (Math.sin(t*5) > 0) {
+                    armL.rotation.z = 2.5; armR.rotation.z = 0; armR.rotation.x = -1.5;
                 } else {
-                    upperArmR.rotation.z = -2.4; // Right arm up
-                    upperArmL.rotation.x = -1.4; // Left arm forward
-                    legR.rotation.z = -0.3; legL.rotation.z = 0;
+                    armR.rotation.z = -2.5; armL.rotation.z = 0; armL.rotation.x = -1.5;
                 }
-                torso.rotation.y = Math.sin(t*5) * 0.2;
             }
-
-            if (camera.position.z < 0) camera.lookAt(0, 2, -70); else camera.lookAt(0, 6, 0);
+            if (camera.position.z < 0) camera.lookAt(0, 2, -80); else camera.lookAt(0, 6, 0);
             renderer.render(scene, camera);
         }
         animate();
