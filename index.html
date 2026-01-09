@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Healing Paradigm - Clean Slate</title>
+    <title>The Healing Paradigm - Fixed Assets</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', monospace; }
         #ui { position: absolute; bottom: 30px; width: 100%; text-align: center; z-index: 10; pointer-events: none; }
@@ -47,31 +47,35 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
-        // --- LIGHTING ---
         scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-        const sun = new THREE.DirectionalLight(0xffffff, 0.5);
-        sun.position.set(5, 20, 10); scene.add(sun);
+        const sun = new THREE.DirectionalLight(0xffffff, 0.6);
+        sun.position.set(10, 20, 10); scene.add(sun);
 
-        // --- EXTERIOR ASSETS ---
+        // --- EXTERIOR ---
         const bld = new THREE.Mesh(new THREE.BoxGeometry(90, 50, 10), new THREE.MeshStandardMaterial({color: 0x89CFF0}));
         bld.position.set(0, 15, -10); scene.add(bld);
 
-        const door = new THREE.Mesh(new THREE.BoxGeometry(12, 20, 2), new THREE.MeshStandardMaterial({color: 0x89CFF0}));
-        door.position.set(0, 5, -2); door.name = "door"; scene.add(door);
+        // VISIBLE DOOR
+        const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(13, 21, 2.5), new THREE.MeshStandardMaterial({color: 0x222}));
+        doorFrame.position.set(0, 5, -2.5); scene.add(doorFrame);
+        const door = new THREE.Mesh(new THREE.BoxGeometry(12, 20, 1), new THREE.MeshStandardMaterial({color: 0x333}));
+        door.position.set(0, 5, -1); door.name = "door_trigger"; scene.add(door);
+        const knob = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshStandardMaterial({color: 0xccaa00}));
+        knob.position.set(4, 5, 0); door.add(knob);
 
-        const winGeo = new THREE.BoxGeometry(18, 18, 1);
-        const winMat = new THREE.MeshBasicMaterial({color: 0x111});
+        const winGeo = new THREE.BoxGeometry(18, 18, 1.5);
+        const winMat = new THREE.MeshBasicMaterial({color: 0x050505});
         const wL = new THREE.Mesh(winGeo, winMat); wL.position.set(-28, 14, -4); scene.add(wL);
         const wR = new THREE.Mesh(winGeo, winMat); wR.position.set(28, 14, -4); scene.add(wR);
 
-        const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(150, 1, 40), new THREE.MeshStandardMaterial({color: 0x333}));
+        const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(160, 1, 45), new THREE.MeshStandardMaterial({color: 0x444}));
         sidewalk.position.set(0, -5, 15); scene.add(sidewalk);
 
         function addStreetLight(x) {
             const g = new THREE.Group();
             const p = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 22), new THREE.MeshStandardMaterial({color: 0x111}));
             const b = new THREE.Mesh(new THREE.SphereGeometry(1.5), new THREE.MeshBasicMaterial({color: 0xffffaa}));
-            b.position.y = 11; const l = new THREE.PointLight(0xffaa00, 1000, 50); l.position.y = 11;
+            b.position.y = 11; const l = new THREE.PointLight(0xffaa00, 1200, 60); l.position.y = 11;
             g.add(p, b, l); g.position.set(x, 5, 25); scene.add(g);
         }
         addStreetLight(-45); addStreetLight(45);
@@ -86,17 +90,16 @@
             }
             p.add(t, lV); p.position.set(x, 7, 35); scene.add(p);
         }
-        addPalm(-65); addPalm(65);
+        addPalm(-68); addPalm(68);
 
-        // Name Sign
         new FontLoader().load('https://threejs.org/examples/fonts/helvetiker_bold.typeface.json', (font) => {
             const g = new TextGeometry('THE HEALING PARADIGM', { font, size: 4, height: 1 }); g.center();
             const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({color: 0xffffff}));
             m.position.set(0, 30, -3); scene.add(m);
         });
 
-        // --- INTERIOR ASSETS ---
-        const walls = new THREE.Mesh(new THREE.BoxGeometry(120, 70, 160), new THREE.MeshStandardMaterial({color: 0x050505, side: 1}));
+        // --- INTERIOR ---
+        const walls = new THREE.Mesh(new THREE.BoxGeometry(120, 70, 160), new THREE.MeshStandardMaterial({color: 0x080808, side: 1}));
         walls.position.z = -80; walls.name = "interior_exit"; scene.add(walls);
 
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 160), new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 0.1}));
@@ -105,24 +108,27 @@
         const table = new THREE.Mesh(new THREE.BoxGeometry(15, 6, 10), new THREE.MeshStandardMaterial({color: 0x3d2b1f}));
         table.position.set(0, -2, -45); scene.add(table);
 
-        const record = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 0.15, 64), new THREE.MeshStandardMaterial({color: 0x000, metalness: 0.8}));
+        // CHECKOUT COUNTER
+        const counter = new THREE.Mesh(new THREE.BoxGeometry(25, 8, 8), new THREE.MeshStandardMaterial({color: 0xCC5500}));
+        counter.position.set(0, -1, -85); scene.add(counter);
+
+        const record = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 0.15, 64), new THREE.MeshStandardMaterial({color: 0x000, metalness: 0.9}));
         record.position.set(0, 1.1, -45); record.name = "vinyl"; scene.add(record);
 
         const spot = new THREE.SpotLight(0xffffff, 0, 100, 0.4);
         spot.position.set(0, 30, -45); spot.target = record; scene.add(spot);
 
-        // Clerk
         const clerk = new THREE.Group();
         const body = new THREE.Mesh(new THREE.CapsuleGeometry(1.6, 6), new THREE.MeshStandardMaterial({color: 0x222})); body.position.y = 5.5;
-        const armL = new THREE.Group(); armL.position.set(-1.8, 8.5, 0); const a1 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 4, 0.6)); a1.position.y = -2; armL.add(a1);
-        const armR = new THREE.Group(); armR.position.set(1.8, 8.5, 0); const a2 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 4, 0.6)); a2.position.y = -2; armR.add(a2);
-        clerk.add(body, armL, armR); clerk.position.set(0, -5, -100); scene.add(clerk);
+        const armL = new THREE.Group(); armL.position.set(-1.8, 8.5, 0); const a1 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 4, 0.7)); a1.position.y = -2; armL.add(a1);
+        const armR = new THREE.Group(); armR.position.set(1.8, 8.5, 0); const a2 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 4, 0.7)); a2.position.y = -2; armR.add(a2);
+        clerk.add(body, armL, armR); clerk.position.set(0, -5, -95); scene.add(clerk);
 
-        // --- LOGIC & STATE ---
-        let recStep = 0, dancing = false, confetti = [];
+        // --- LOGIC ---
+        let step = 0, dancing = false, confetti = [];
         
         function reset() {
-            recStep = 0; dancing = false;
+            step = 0; dancing = false;
             new TWEEN.Tween(camera.position).to({x:0, y:15, z:110}, 1000).easing(TWEEN.Easing.Quadratic.Out).start();
             record.position.set(0, 1.1, -45); record.rotation.set(0,0,0);
             spot.intensity = 0;
@@ -138,19 +144,19 @@
             if (!hits.length) return;
             const obj = hits[0].object;
 
-            if (obj.name === "door") {
-                new TWEEN.Tween(camera.position).to({x:0, y:10, z:-10}, 1000).start();
-                document.getElementById('status').innerText = "SELECT THE VINYL";
+            if (obj.name === "door_trigger") {
+                new TWEEN.Tween(camera.position).to({x:0, y:12, z:-10}, 1000).start();
+                document.getElementById('status').innerText = "CLICK VINYL RECORD";
             } else if (obj.name === "vinyl") {
-                if (recStep === 0) {
-                    new TWEEN.Tween(record.position).to({y: 6, z: -25}, 800).start();
+                if (step === 0) {
+                    new TWEEN.Tween(record.position).to({y: 6.5, z: -25}, 800).start();
                     new TWEEN.Tween(record.rotation).to({x: Math.PI/2}, 800).start();
-                    spot.intensity = 6000; recStep = 1;
-                } else if (recStep === 1) {
-                    new TWEEN.Tween(record.position).to({x: 8, y: 4, z: -90}, 800).start();
+                    spot.intensity = 6000; step = 1;
+                } else if (step === 1) {
+                    new TWEEN.Tween(record.position).to({x: 6, y: 3.2, z: -85}, 800).start();
                     new TWEEN.Tween(record.rotation).to({x: 0}, 800).start();
-                    new TWEEN.Tween(camera.position).to({y: 12, z: -65}, 1000).start();
-                    spot.intensity = 0; recStep = 2;
+                    new TWEEN.Tween(camera.position).to({x: 0, y: 12, z: -65}, 1000).start();
+                    spot.intensity = 0; step = 2;
                     document.getElementById('buy-btn').style.display = 'inline-block';
                     document.getElementById('wallet-btn').style.display = 'inline-block';
                 }
@@ -162,7 +168,7 @@
             new Audio('https://www.myinstants.com/media/sounds/ka-ching.mp3').play();
             for(let i=0; i<60; i++) {
                 const c = new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.5), new THREE.MeshBasicMaterial({color: Math.random()*0xffffff, side: 2}));
-                c.position.set(Math.random()*30-15, 25, -95); scene.add(c);
+                c.position.set(Math.random()*30-15, 25, -90); scene.add(c);
                 confetti.push(c);
             }
         });
@@ -176,7 +182,7 @@
             confetti.forEach(c => { if(c.position.y > -5) c.position.y -= 0.2; });
             if (dancing) {
                 clerk.position.y = -5 + Math.abs(Math.sin(t*5)) * 2;
-                clerk.position.x = Math.sin(t*2) * 4;
+                clerk.position.x = Math.sin(t*2.5) * 4;
                 if (Math.sin(t*5) > 0) { armL.rotation.z = 2.2; armR.rotation.z = 0; }
                 else { armR.rotation.z = -2.2; armL.rotation.z = 0; }
             }
