@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Healing Paradigm - Fixed Assets</title>
+    <title>The Healing Paradigm - The Smeez Update</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', monospace; }
         #ui { position: absolute; bottom: 30px; width: 100%; text-align: center; z-index: 10; pointer-events: none; }
@@ -55,13 +55,8 @@
         const bld = new THREE.Mesh(new THREE.BoxGeometry(90, 50, 10), new THREE.MeshStandardMaterial({color: 0x89CFF0}));
         bld.position.set(0, 15, -10); scene.add(bld);
 
-        // VISIBLE DOOR
-        const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(13, 21, 2.5), new THREE.MeshStandardMaterial({color: 0x222}));
-        doorFrame.position.set(0, 5, -2.5); scene.add(doorFrame);
-        const door = new THREE.Mesh(new THREE.BoxGeometry(12, 20, 1), new THREE.MeshStandardMaterial({color: 0x333}));
-        door.position.set(0, 5, -1); door.name = "door_trigger"; scene.add(door);
-        const knob = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshStandardMaterial({color: 0xccaa00}));
-        knob.position.set(4, 5, 0); door.add(knob);
+        const door = new THREE.Mesh(new THREE.BoxGeometry(12, 20, 1.5), new THREE.MeshStandardMaterial({color: 0x222}));
+        door.position.set(0, 5, -2); door.name = "door_trigger"; scene.add(door);
 
         const winGeo = new THREE.BoxGeometry(18, 18, 1.5);
         const winMat = new THREE.MeshBasicMaterial({color: 0x050505});
@@ -70,15 +65,6 @@
 
         const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(160, 1, 45), new THREE.MeshStandardMaterial({color: 0x444}));
         sidewalk.position.set(0, -5, 15); scene.add(sidewalk);
-
-        function addStreetLight(x) {
-            const g = new THREE.Group();
-            const p = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 22), new THREE.MeshStandardMaterial({color: 0x111}));
-            const b = new THREE.Mesh(new THREE.SphereGeometry(1.5), new THREE.MeshBasicMaterial({color: 0xffffaa}));
-            b.position.y = 11; const l = new THREE.PointLight(0xffaa00, 1200, 60); l.position.y = 11;
-            g.add(p, b, l); g.position.set(x, 5, 25); scene.add(g);
-        }
-        addStreetLight(-45); addStreetLight(45);
 
         function addPalm(x) {
             const p = new THREE.Group();
@@ -99,16 +85,12 @@
         });
 
         // --- INTERIOR ---
-        const walls = new THREE.Mesh(new THREE.BoxGeometry(120, 70, 160), new THREE.MeshStandardMaterial({color: 0x080808, side: 1}));
-        walls.position.z = -80; walls.name = "interior_exit"; scene.add(walls);
-
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 160), new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 0.1}));
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 160), new THREE.MeshStandardMaterial({color: 0xffffff}));
         floor.rotation.x = -Math.PI/2; floor.position.set(0, -4.9, -80); scene.add(floor);
 
         const table = new THREE.Mesh(new THREE.BoxGeometry(15, 6, 10), new THREE.MeshStandardMaterial({color: 0x3d2b1f}));
         table.position.set(0, -2, -45); scene.add(table);
 
-        // CHECKOUT COUNTER
         const counter = new THREE.Mesh(new THREE.BoxGeometry(25, 8, 8), new THREE.MeshStandardMaterial({color: 0xCC5500}));
         counter.position.set(0, -1, -85); scene.add(counter);
 
@@ -129,7 +111,7 @@
         
         function reset() {
             step = 0; dancing = false;
-            new TWEEN.Tween(camera.position).to({x:0, y:15, z:110}, 1000).easing(TWEEN.Easing.Quadratic.Out).start();
+            new TWEEN.Tween(camera.position).to({x:0, y:15, z:110}, 1000).start();
             record.position.set(0, 1.1, -45); record.rotation.set(0,0,0);
             spot.intensity = 0;
             document.querySelectorAll('.btn').forEach(b => b.style.display = 'none');
@@ -160,15 +142,17 @@
                     document.getElementById('buy-btn').style.display = 'inline-block';
                     document.getElementById('wallet-btn').style.display = 'inline-block';
                 }
-            } else if (obj.name === "interior_exit") { reset(); }
+            }
         });
 
         document.getElementById('buy-btn').addEventListener('click', () => {
             dancing = true;
             new Audio('https://www.myinstants.com/media/sounds/ka-ching.mp3').play();
+            // Drop confetti SPECIFICALLY in front of register
             for(let i=0; i<60; i++) {
                 const c = new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.5), new THREE.MeshBasicMaterial({color: Math.random()*0xffffff, side: 2}));
-                c.position.set(Math.random()*30-15, 25, -90); scene.add(c);
+                c.position.set(6 + (Math.random()*6-3), 25, -85 + (Math.random()*4-2)); 
+                scene.add(c);
                 confetti.push(c);
             }
         });
@@ -178,13 +162,21 @@
 
         function animate() {
             requestAnimationFrame(animate); TWEEN.update();
-            const t = Date.now() * 0.004;
-            confetti.forEach(c => { if(c.position.y > -5) c.position.y -= 0.2; });
+            const t = Date.now() * 0.005; // Slightly faster dance speed
+            confetti.forEach(c => { if(c.position.y > -5) c.position.y -= 0.25; });
+            
             if (dancing) {
-                clerk.position.y = -5 + Math.abs(Math.sin(t*5)) * 2;
-                clerk.position.x = Math.sin(t*2.5) * 4;
-                if (Math.sin(t*5) > 0) { armL.rotation.z = 2.2; armR.rotation.z = 0; }
-                else { armR.rotation.z = -2.2; armL.rotation.z = 0; }
+                // CORRECT SMEEZ MOVE: Side-to-side slide + High/Low arm switch
+                clerk.position.y = -5 + Math.abs(Math.sin(t*5)) * 2; // Bounce
+                clerk.position.x = Math.sin(t*2.5) * 5; // Wide Slide
+                
+                if (Math.sin(t*2.5) > 0) { 
+                    // Sliding Right: Right arm low, Left arm high
+                    armL.rotation.z = 2.4; armR.rotation.z = 0.2; 
+                } else { 
+                    // Sliding Left: Left arm low, Right arm high
+                    armR.rotation.z = -2.4; armL.rotation.z = -0.2; 
+                }
             }
             camera.lookAt(0, 0, camera.position.z > 0 ? 0 : -120);
             renderer.render(scene, camera);
