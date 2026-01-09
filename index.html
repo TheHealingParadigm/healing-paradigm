@@ -67,11 +67,12 @@
         facade.position.z = -2; scene.add(facade);
         const whiteFrame = new THREE.Mesh(new THREE.BoxGeometry(32, 18, 2), new THREE.MeshStandardMaterial({color: 0xffffff}));
         whiteFrame.position.set(0, 2, 0); scene.add(whiteFrame);
-        const winGeo = new THREE.PlaneGeometry(8, 10);
+        
         const winMat = new THREE.MeshStandardMaterial({color: 0x111, transparent: true, opacity: 0.4});
-        const winL = new THREE.Mesh(winGeo, winMat); winL.position.set(-10, 2, 1.1);
-        const winR = new THREE.Mesh(winGeo, winMat); winR.position.set(10, 2, 1.1);
+        const winL = new THREE.Mesh(new THREE.PlaneGeometry(8, 10), winMat); winL.position.set(-10, 2, 1.1);
+        const winR = new THREE.Mesh(new THREE.PlaneGeometry(8, 10), winMat); winR.position.set(10, 2, 1.1);
         scene.add(winL, winR);
+        
         const door = new THREE.Mesh(new THREE.PlaneGeometry(6, 11), new THREE.MeshStandardMaterial({ color: 0x111, transparent: true, opacity: 0.6 }));
         door.position.set(0, 0.5, 1.5); door.name = "door_trigger"; scene.add(door);
 
@@ -94,7 +95,6 @@
         const browseTable = new THREE.Mesh(new THREE.BoxGeometry(10, 6, 6), new THREE.MeshStandardMaterial({ color: 0x5C4033 }));
         browseTable.position.set(0, -12, -22); scene.add(browseTable);
 
-        // Racks & Shelves
         const rackGroup = new THREE.Group();
         const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 15), new THREE.MeshStandardMaterial({color: 0x333}));
         bar.rotation.z = Math.PI/2; rackGroup.add(bar);
@@ -105,25 +105,14 @@
         rackGroup.position.set(-30, 0, -35); rackGroup.rotation.y = Math.PI/2; scene.add(rackGroup);
 
         const bookshelf = new THREE.Group();
-        const woodMat = new THREE.MeshStandardMaterial({ color: 0x4a2c2a });
-        const shelfBack = new THREE.Mesh(new THREE.BoxGeometry(10, 15, 1), woodMat);
+        const shelfBack = new THREE.Mesh(new THREE.BoxGeometry(10, 15, 1), new THREE.MeshStandardMaterial({ color: 0x4a2c2a }));
         shelfBack.name = "bookshelf"; bookshelf.add(shelfBack);
-        for(let i = -5; i <= 5; i += 3.5) {
-            const shelf = new THREE.Mesh(new THREE.BoxGeometry(10, 0.3, 3), woodMat);
-            shelf.position.y = i; shelf.position.z = 1.5; shelf.name = "bookshelf"; bookshelf.add(shelf);
-            for(let j = -4; j < 4; j += 1) {
-                const book = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.5, 2), new THREE.MeshStandardMaterial({color: Math.random() * 0xffffff}));
-                book.position.set(j, i + 1.4, 1.5); book.name = "bookshelf"; bookshelf.add(book);
-            }
-        }
         bookshelf.position.set(30, -1, -35); bookshelf.rotation.y = -Math.PI/2; scene.add(bookshelf);
 
-        // Counter & Record Player
         const recordPlayer = new THREE.Group();
         const pBase = new THREE.Mesh(new THREE.BoxGeometry(5, 1, 4), new THREE.MeshStandardMaterial({color: 0x008080}));
-        const pOutline = new THREE.Mesh(new THREE.BoxGeometry(5.2, 1.1, 4.2), new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.BackSide}));
         turntable = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.2, 32), new THREE.MeshStandardMaterial({color: 0xeee}));
-        turntable.position.y = 0.6; recordPlayer.add(pOutline, pBase, turntable);
+        turntable.position.y = 0.6; recordPlayer.add(pBase, turntable);
         recordPlayer.position.set(-4, -2.5, -45); scene.add(recordPlayer);
 
         const counter = new THREE.Mesh(new THREE.BoxGeometry(16, 5, 8), new THREE.MeshStandardMaterial({ color: 0xCC5500 }));
@@ -132,43 +121,29 @@
         const record = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 0.05, 64), new THREE.MeshPhysicalMaterial({ color: 0x050505, roughness: 0.05, metalness: 0.8 }));
         record.position.set(0, -8.95, -22); record.name = "record"; scene.add(record);
 
-        // --- SPOTLIGHT FIXED ---
-        recordSpotlight = new THREE.SpotLight(0xffffff, 0);
-        recordSpotlight.angle = 0.3;
-        recordSpotlight.penumbra = 0.4;
-        recordSpotlight.decay = 1;
-        recordSpotlight.distance = 40;
+        // --- SPOTLIGHT SYSTEM ---
+        recordSpotlight = new THREE.SpotLight(0xffffff, 0, 50, 0.4, 0.5, 1);
         scene.add(recordSpotlight);
-        recordSpotlight.target = record; // Always look at record
+        recordSpotlight.target = record; // Physically link light to record movement
 
         // --- CLERK ---
         clerkGroup = new THREE.Group();
         const head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 16), new THREE.MeshStandardMaterial({color: 0x5c4033}));
         head.position.y = -1.6;
-        const body = new THREE.Mesh(new THREE.CapsuleGeometry(1, 2.5, 4, 8), new THREE.MeshStandardMaterial({color: 0x333}));
-        body.position.y = -3.8;
+        const torso = new THREE.Mesh(new THREE.CapsuleGeometry(1, 2.5, 4, 8), new THREE.MeshStandardMaterial({color: 0x333}));
+        torso.position.y = -3.8;
         armL = new THREE.Group(); armL.position.set(-1.2, -3, 0); const lM = new THREE.Mesh(new THREE.CapsuleGeometry(0.25, 1.8, 4, 8), new THREE.MeshStandardMaterial({color: 0x5c4033})); lM.position.y = -0.8; armL.add(lM);
         armR = new THREE.Group(); armR.position.set(1.2, -3, 0); const rM = new THREE.Mesh(new THREE.CapsuleGeometry(0.25, 1.8, 4, 8), new THREE.MeshStandardMaterial({color: 0x5c4033})); rM.position.y = -0.8; armR.add(rM);
-        clerkGroup.add(body, head, armL, armR); clerkGroup.position.set(0, 0, -52); scene.add(clerkGroup);
+        clerkGroup.add(torso, head, armL, armR); clerkGroup.position.set(0, 0, -52); scene.add(clerkGroup);
 
+        // --- TEXT ---
         const loader = new FontLoader();
         loader.load('https://threejs.org/examples/fonts/gentilis_bold.typeface.json', (font) => {
             const mainSign = new THREE.Mesh(new TextGeometry('THE HEALING PARADIGM', { font, size: 2.2, height: 0.5 }), new THREE.MeshStandardMaterial({color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.5}));
             mainSign.geometry.center(); mainSign.position.set(0, 15, 2); scene.add(mainSign);
-
-            const createNeon = (text, x, y, z, rotY, size, name) => {
-                const g = new THREE.Group();
-                const core = new THREE.Mesh(new TextGeometry(text, { font, size, height: 0.1 }), new THREE.MeshStandardMaterial({color: 0x9400D3, emissive: 0x9400D3, emissiveIntensity: 2}));
-                const trim = new THREE.Mesh(new TextGeometry(text, { font, size: size*1.05, height: 0.05 }), new THREE.MeshStandardMaterial({color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 1}));
-                core.geometry.center(); trim.geometry.center(); trim.position.z = -0.1;
-                g.add(trim, core); g.position.set(x, y, z); g.rotation.y = rotY; 
-                g.children.forEach(c => c.name = name); scene.add(g);
-            };
-            createNeon('CLOTHING', -29.8, 6, -35, Math.PI/2, 1.2, "clothing_rack");
-            createNeon('books', 29.8, 8, -35, -Math.PI/2, 1.0, "bookshelf");
         });
 
-        // --- INTERACTION ---
+        // --- ANIMATION & INTERACTION ---
         window.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('nav-btn')) return;
             mouse.x = (e.clientX/window.innerWidth)*2-1; mouse.y = -(e.clientY/window.innerHeight)*2+1;
@@ -187,13 +162,14 @@
                 } else if (obj.name === "record") {
                     if (recordState === 'table') {
                         recordState = 'floating';
-                        new TWEEN.Tween(amb).to({ intensity: 0.1 }, 500).start();
-                        recordSpotlight.intensity = 2000;
-                        new TWEEN.Tween(record.position).to({ y: -0.2, z: -8 }, 800).start();
-                        new TWEEN.Tween(record.rotation).to({ x: Math.PI / 2 }, 800).start();
+                        new TWEEN.Tween(amb).to({ intensity: 0.1 }, 400).start();
+                        new TWEEN.Tween(recordSpotlight).to({ intensity: 4000 }, 400).start();
+                        new TWEEN.Tween(record.position).to({ y: -0.2, z: -8 }, 1000).easing(TWEEN.Easing.Quadratic.Out).start();
+                        new TWEEN.Tween(record.rotation).to({ x: Math.PI / 2 }, 1000).start();
                     } else if (recordState === 'floating') {
                         recordState = 'counter';
-                        new TWEEN.Tween(amb).to({ intensity: 1.0 }, 500).start(); recordSpotlight.intensity = 0;
+                        new TWEEN.Tween(amb).to({ intensity: 1.0 }, 400).start(); 
+                        new TWEEN.Tween(recordSpotlight).to({ intensity: 0 }, 400).start();
                         new TWEEN.Tween(record.position).to({ x: 0, y: -3.4, z: -46 }, 1000).start();
                         new TWEEN.Tween(record.rotation).to({ x: 0 }, 1000).start();
                         new TWEEN.Tween(camera.position).to({ z: -32, y: 1.5 }, 1200).start();
@@ -206,12 +182,6 @@
         document.getElementById('buy-btn').addEventListener('click', () => {
             isDancing = true; isPlaying = true;
             new TWEEN.Tween(record.position).to({ x: -4, y: -1.75, z: -45 }, 800).start();
-            new Audio('https://www.myinstants.com/media/sounds/ka-ching.mp3').play();
-            for(let i=0; i<100; i++) {
-                const p = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.3), new THREE.MeshBasicMaterial({color: Math.random() * 0xffffff, side: 2}));
-                p.position.set(Math.random()*20-10, 15, -45); scene.add(p);
-                confetti.push({mesh: p, speed: Math.random()*0.1+0.05});
-            }
         });
 
         camera.position.set(0, 0, 45);
@@ -220,24 +190,30 @@
             requestAnimationFrame(animate); TWEEN.update();
             if (isPlaying) { turntable.rotation.y += 0.1; record.rotation.y += 0.1; }
             
-            // Spotlight Update during floating
+            // Spotlight follows record
             if (recordState === 'floating') {
-                recordSpotlight.position.set(record.position.x, 10, record.position.z);
+                recordSpotlight.position.set(record.position.x, record.position.y + 10, record.position.z);
             }
 
             if (isWaving) { armR.rotation.z = Math.sin(Date.now() * 0.01) * 0.6 + 2.4; }
             else if (isDancing) {
-                // TRUE SMEEZ DANCE
-                const t = Date.now() * 0.008;
-                const step = Math.sin(t);
-                clerkGroup.position.x = step * 1.5; // Bounce side to side
-                clerkGroup.position.y = Math.abs(Math.cos(t)) * 0.5; // Vertical hop
-                clerkGroup.rotation.z = step * 0.1; // Lean
-                armL.rotation.z = Math.sin(t * 1.5) * 1.5; // High arm swings
-                armR.rotation.z = -Math.sin(t * 1.5) * 1.5;
-            } else { armR.rotation.z = 0; armL.rotation.z = 0; clerkGroup.rotation.z = 0; clerkGroup.position.y = 0; }
+                // THE SMEEZ
+                const t = Date.now() * 0.007;
+                const phase = Math.sin(t); 
+                
+                clerkGroup.position.x = phase * 2; // Side-to-side bounce
+                clerkGroup.position.y = Math.abs(Math.cos(t * 2)) * 0.4; // Vertical hop
+                clerkGroup.rotation.y = phase * 0.4; // Torso twist
+                
+                if (phase > 0) { // Right side bounce
+                    armR.rotation.z = 2.8; // Right arm high
+                    armL.rotation.z = Math.sin(t*5) * 0.5; // Left arm low rotation
+                } else { // Left side bounce
+                    armL.rotation.z = 2.8; // Left arm high
+                    armR.rotation.z = Math.sin(t*5) * 0.5; // Right arm low rotation
+                }
+            }
             
-            confetti.forEach(c => { c.mesh.position.y -= c.speed; });
             if (camera.position.z < 0) camera.lookAt(0, -2, -52); else camera.lookAt(0, 0, 0);
             renderer.render(scene, camera);
         }
