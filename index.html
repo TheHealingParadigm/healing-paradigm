@@ -52,7 +52,7 @@
         const sun = new THREE.DirectionalLight(0xffffff, 0.5);
         sun.position.set(10, 20, 10); scene.add(sun);
 
-        // --- EXTERIOR ---
+        // --- EXTERIOR (UNCHANGED) ---
         const bld = new THREE.Mesh(new THREE.BoxGeometry(90, 50, 10), new THREE.MeshStandardMaterial({color: 0x89CFF0}));
         bld.position.set(0, 15, -10); scene.add(bld);
 
@@ -99,42 +99,39 @@
             m.position.set(0, 30, -3); scene.add(m);
         });
 
-        // --- IMPROVED CHALKBOARD (DEEP SLATE + CHALK EFFECT) ---
+        // --- INTERIOR ---
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 160), new THREE.MeshStandardMaterial({color: 0xffffff}));
         floor.rotation.x = -Math.PI/2; floor.position.set(0, -4.9, -80); scene.add(floor);
 
+        // --- AUTHENTIC CHALKBOARD DRAWING (CODE-ONLY) ---
         const canvas = document.createElement('canvas');
         canvas.width = 1024; canvas.height = 1024;
         const ctx = canvas.getContext('2d');
         
-        // Dark Slate Finish
-        ctx.fillStyle = '#151716'; ctx.fillRect(0, 0, 1024, 1024);
-        // Dusty Wipe Marks
-        for(let i=0; i<80; i++) {
-            ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.02})`;
-            ctx.filter = 'blur(10px)';
-            ctx.fillRect(Math.random()*1024, Math.random()*1024, Math.random()*400, Math.random()*100);
-        }
-        ctx.filter = 'none';
-
-        // Chalk Text Logic
-        function drawChalk(text, x, y, size, bold=false, center=false) {
-            ctx.fillStyle = "rgba(240, 240, 240, 0.9)";
-            ctx.font = `${bold ? 'bold' : ''} ${size}px "Courier New", monospace`;
-            ctx.textAlign = center ? 'center' : 'left';
-            ctx.shadowBlur = 3;
-            ctx.shadowColor = "white";
-            ctx.fillText(text, x, y);
-            // Double-pass for grainy look
-            ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
-            ctx.fillText(text, x + (Math.random()-0.5)*2, y + (Math.random()-0.5)*2);
+        // 1. Create Dusty Slate Background
+        ctx.fillStyle = '#1e211f'; ctx.fillRect(0, 0, 1024, 1024);
+        for(let i=0; i<100; i++) {
+            ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.03})`;
+            ctx.beginPath();
+            ctx.arc(Math.random()*1024, Math.random()*1024, Math.random()*200, 0, Math.PI*2);
+            ctx.fill();
         }
 
-        drawChalk('THE HEALING PARADIGM', 512, 120, 58, true, true);
-        drawChalk('What you’re supporting', 512, 180, 34, false, true);
+        // 2. Chalk Style Configuration
+        ctx.shadowColor = "rgba(255,255,255,0.4)";
+        ctx.shadowBlur = 4;
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
         
-        let cY = 280;
-        const txt = [
+        // 3. Drawing the Text with Chalk Texture
+        ctx.textAlign = 'center';
+        ctx.font = '62px "Comic Sans MS", cursive, sans-serif'; 
+        ctx.fillText('THE HEALING PARADIGM', 512, 100);
+        ctx.font = '36px "Comic Sans MS", cursive, sans-serif'; 
+        ctx.fillText('What you’re supporting', 512, 165);
+        
+        ctx.textAlign = 'left';
+        let chalkY = 260; 
+        const manifest = [
             'People are the wealth.', 'Scarcity is designed.', 'Healing restores abundance.',
             '', 'BLUEPRINT',
             '① Heal the Individual', '② Re-educate the People', '③ Rebuild Community', 
@@ -142,25 +139,26 @@
             '', 'Music restores feeling.', 'Feeling restores power.'
         ];
         
-        txt.forEach(l => {
-            if(l === 'BLUEPRINT') drawChalk(l, 180, cY, 44, true);
-            else drawChalk(l, 180, cY, 32, false);
-            cY += 50;
+        manifest.forEach(line => {
+            if(line === 'BLUEPRINT') ctx.font = 'bold 44px "Comic Sans MS", cursive, sans-serif';
+            else ctx.font = '32px "Comic Sans MS", cursive, sans-serif';
+            ctx.fillText(line, 180, chalkY); chalkY += 50;
         });
-        drawChalk('This is an active prototype.', 512, 950, 28, false, true);
+        
+        ctx.textAlign = 'center';
+        ctx.font = 'italic 28px "Comic Sans MS", cursive, sans-serif';
+        ctx.fillText('This is an active prototype.', 512, 960);
 
         const boardTex = new THREE.CanvasTexture(canvas);
         const boardPlane = new THREE.Mesh(new THREE.PlaneGeometry(65, 65), new THREE.MeshStandardMaterial({map: boardTex}));
         boardPlane.position.set(0, 26, -158.5);
         
-        const frame = new THREE.Mesh(new THREE.BoxGeometry(70, 70, 2), new THREE.MeshStandardMaterial({color: 0x222222}));
+        // Wood Frame around the board
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(68, 68, 2), new THREE.MeshStandardMaterial({color: 0x3d2b1f}));
         frame.position.set(0, 26, -159);
-        
-        const chalkLedge = new THREE.Mesh(new THREE.BoxGeometry(70, 1, 3), new THREE.MeshStandardMaterial({color: 0x444444}));
-        chalkLedge.position.set(0, -8, -157);
-        scene.add(frame, boardPlane, chalkLedge);
+        scene.add(frame, boardPlane);
 
-        // --- INTERIOR LIGHTS ---
+        // --- CEILING LIGHTS ---
         function addCeilingLight(x, z) {
             const g = new THREE.Group();
             const fixture = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 0.5), new THREE.MeshStandardMaterial({color: 0x333}));
@@ -251,7 +249,7 @@
 
         function animate() {
             requestAnimationFrame(animate); TWEEN.update();
-            const t = Date.now() * 0.002;
+            const t = Date.now() * 0.002; // Slower Smeez Speed
             confetti.forEach(c => { if(c.position.y > -5) c.position.y -= 0.25; });
             if (dancing) {
                 const cycle = Math.sin(t*2);
