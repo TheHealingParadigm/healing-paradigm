@@ -50,17 +50,13 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-        const sun = new THREE.DirectionalLight(0xffffff, 0.6);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        const sun = new THREE.DirectionalLight(0xffffff, 0.8);
         sun.position.set(10, 20, 10); scene.add(sun);
 
         // --- EXTERIOR ---
         const bld = new THREE.Mesh(new THREE.BoxGeometry(90, 50, 10), new THREE.MeshStandardMaterial({color: 0x89CFF0}));
         bld.position.set(0, 15, -10); scene.add(bld);
-
-        // Back Wall of Interior (Where board is placed)
-        const backWall = new THREE.Mesh(new THREE.PlaneGeometry(120, 50), new THREE.MeshStandardMaterial({color: 0xeeeeee}));
-        backWall.position.set(0, 15, -160); scene.add(backWall);
 
         const door = new THREE.Mesh(new THREE.BoxGeometry(12, 20, 1.6), new THREE.MeshStandardMaterial({color: 0xffffff}));
         door.position.set(0, 5, -2); door.name = "door_trigger"; scene.add(door);
@@ -109,15 +105,19 @@
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 160), new THREE.MeshStandardMaterial({color: 0xffffff}));
         floor.rotation.x = -Math.PI/2; floor.position.set(0, -4.9, -80); scene.add(floor);
 
-        // Chalkboard Canvas
+        // Physical back wall box (Thick to prevent clipping)
+        const wallBack = new THREE.Mesh(new THREE.BoxGeometry(120, 60, 5), new THREE.MeshStandardMaterial({color: 0xdddddd}));
+        wallBack.position.set(0, 25, -150); scene.add(wallBack);
+
+        // Canvas setup
         const canvas = document.createElement('canvas');
         canvas.width = 1024; canvas.height = 1024;
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = '#1e211f'; ctx.fillRect(0, 0, 1024, 1024);
         
-        // Grainy Chalk Dust
-        for(let i=0; i<1500; i++) {
-            ctx.fillStyle = `rgba(255,255,255,${Math.random()*0.03})`;
+        // Grain
+        for(let i=0; i<2500; i++) {
+            ctx.fillStyle = `rgba(255,255,255,${Math.random()*0.04})`;
             ctx.fillRect(Math.random()*1024, Math.random()*1024, 2, 2);
         }
 
@@ -127,26 +127,27 @@
         ctx.font = 'italic 30px Courier New'; ctx.fillText('What you’re supporting', 512, 160);
         
         ctx.font = '28px Courier New'; ctx.textAlign = 'left';
-        let y = 240; 
-        ['People are the wealth.', 'Scarcity is designed.', 'Healing restores abundance.'].forEach(t => { ctx.fillText(t, 150, y); y += 45; });
-        y += 40; ctx.font = 'bold 32px Courier New'; ctx.fillText('BLUEPRINT', 150, y); y += 50; ctx.font = '28px Courier New';
-        ['① Heal the Individual', '② Re-educate the People', '③ Rebuild Community', '④ Circulate Local Value', '⑤ Shared Sovereignty'].forEach(t => { ctx.fillText(t, 150, y); y += 45; });
-        y += 60; ctx.fillText('Music restores feeling.', 150, y); y += 40; ctx.fillText('Feeling restores power.', 150, y);
-        ctx.font = 'italic 24px Courier New'; ctx.fillText('This is an active prototype.', 150, y + 80);
+        let yLine = 240; 
+        ['People are the wealth.', 'Scarcity is designed.', 'Healing restores abundance.'].forEach(t => { ctx.fillText(t, 150, yLine); yLine += 45; });
+        yLine += 40; ctx.font = 'bold 32px Courier New'; ctx.fillText('BLUEPRINT', 150, yLine); yLine += 50; ctx.font = '28px Courier New';
+        ['① Heal the Individual', '② Re-educate the People', '③ Rebuild Community', '④ Circulate Local Value', '⑤ Shared Sovereignty'].forEach(t => { ctx.fillText(t, 150, yLine); yLine += 45; });
+        yLine += 60; ctx.fillText('Music restores feeling.', 150, yLine); yLine += 40; ctx.fillText('Feeling restores power.', 150, yLine);
+        ctx.font = 'italic 24px Courier New'; ctx.fillText('This is an active prototype.', 150, yLine + 80);
 
         const boardTex = new THREE.CanvasTexture(canvas);
-        const board = new THREE.Mesh(new THREE.PlaneGeometry(55, 55), new THREE.MeshStandardMaterial({map: boardTex}));
-        // Positioned at -159.5 so it sits slightly in front of the backWall at -160
-        board.position.set(0, 20, -159.5); 
+        const board = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({map: boardTex}));
+        // Positioned clearly in front of the wall
+        board.position.set(0, 25, -147.4); 
+        board.renderOrder = 1; 
         
-        const frame = new THREE.Mesh(new THREE.BoxGeometry(58, 58, 1), new THREE.MeshStandardMaterial({color: 0x333333}));
-        frame.position.set(0, 20, -159.8);
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(64, 64, 1), new THREE.MeshStandardMaterial({color: 0x333333}));
+        frame.position.set(0, 25, -147.5);
         scene.add(frame, board);
 
-        // Light specifically for the board
-        const boardLight = new THREE.PointLight(0xffffff, 500, 80);
-        boardLight.position.set(0, 25, -140);
-        scene.add(boardLight);
+        // Dedicated light for the board
+        const bLight = new THREE.PointLight(0xffffff, 1000, 100);
+        bLight.position.set(0, 40, -120);
+        scene.add(bLight);
 
         function addCeilingLight(x, z) {
             const g = new THREE.Group();
