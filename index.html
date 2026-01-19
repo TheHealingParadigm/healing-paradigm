@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Healing Paradigm - Final Polished Build</title>
+    <title>The Healing Paradigm - Manifesto Build</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', monospace; touch-action: none; }
         #ui { position: absolute; bottom: 30px; width: 100%; text-align: center; z-index: 10; pointer-events: none; }
@@ -56,13 +56,11 @@
         const bld = new THREE.Mesh(new THREE.BoxGeometry(90, 50, 10), new THREE.MeshStandardMaterial({color: 0x89CFF0}));
         bld.position.set(0, 15, -10); scene.add(bld);
 
-        // WHITE DOOR WITH KNOB
         const door = new THREE.Mesh(new THREE.BoxGeometry(12, 20, 1.6), new THREE.MeshStandardMaterial({color: 0xffffff}));
         door.position.set(0, 5, -2); door.name = "door_trigger"; scene.add(door);
         const knob = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshStandardMaterial({color: 0xccaa00, metalness: 0.8}));
         knob.position.set(4, 0, 1); door.add(knob);
 
-        // WINDOWS WITH WHITE TRIM
         function addTrimWindow(x) {
             const win = new THREE.Mesh(new THREE.BoxGeometry(18, 18, 1.5), new THREE.MeshBasicMaterial({color: 0x050505}));
             const trim = new THREE.Mesh(new THREE.BoxGeometry(20, 20, 1.2), new THREE.MeshStandardMaterial({color: 0xffffff}));
@@ -101,9 +99,28 @@
             m.position.set(0, 30, -3); scene.add(m);
         });
 
-        // --- INTERIOR & CEILING LIGHTS ---
+        // --- INTERIOR & MANIFESTO CHALKBOARD ---
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 160), new THREE.MeshStandardMaterial({color: 0xffffff}));
         floor.rotation.x = -Math.PI/2; floor.position.set(0, -4.9, -80); scene.add(floor);
+
+        // Chalkboard logic
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024; canvas.height = 1024;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, 1024, 1024);
+        ctx.fillStyle = 'white'; ctx.font = 'bold 44px Courier New'; ctx.textAlign = 'center';
+        ctx.fillText('THE HEALING PARADIGM', 512, 100);
+        ctx.font = 'italic 30px Courier New'; ctx.fillText('What you’re supporting', 512, 160);
+        ctx.font = '28px Courier New'; ctx.textAlign = 'left';
+        let y = 240; 
+        ['People are the wealth.', 'Scarcity is designed.', 'Healing restores abundance.'].forEach(t => { ctx.fillText(t, 150, y); y += 45; });
+        y += 40; ctx.font = 'bold 32px Courier New'; ctx.fillText('BLUEPRINT', 150, y); y += 50; ctx.font = '28px Courier New';
+        ['① Heal the Individual', '② Re-educate the People', '③ Rebuild Community', '④ Circulate Local Value', '⑤ Shared Sovereignty'].forEach(t => { ctx.fillText(t, 150, y); y += 45; });
+        y += 60; ctx.fillText('Music restores feeling.', 150, y); y += 40; ctx.fillText('Feeling restores power.', 150, y);
+        ctx.font = 'italic 24px Courier New'; ctx.fillText('This is an active prototype.', 150, y + 80);
+        const boardTex = new THREE.CanvasTexture(canvas);
+        const board = new THREE.Mesh(new THREE.PlaneGeometry(50, 50), new THREE.MeshStandardMaterial({map: boardTex}));
+        board.position.set(0, 18, -159); scene.add(board);
 
         function addCeilingLight(x, z) {
             const g = new THREE.Group();
@@ -195,7 +212,7 @@
 
         function animate() {
             requestAnimationFrame(animate); TWEEN.update();
-            const t = Date.now() * 0.002; // EVEN SLOWER SMEEZ
+            const t = Date.now() * 0.002; 
             confetti.forEach(c => { if(c.position.y > -5) c.position.y -= 0.25; });
             if (dancing) {
                 const cycle = Math.sin(t*2);
