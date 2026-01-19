@@ -50,9 +50,7 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-        const sun = new THREE.DirectionalLight(0xffffff, 0.8);
-        sun.position.set(10, 20, 10); scene.add(sun);
+        scene.add(new THREE.AmbientLight(0xffffff, 1.0));
 
         // --- EXTERIOR ---
         const bld = new THREE.Mesh(new THREE.BoxGeometry(90, 50, 10), new THREE.MeshStandardMaterial({color: 0x89CFF0}));
@@ -60,29 +58,14 @@
 
         const door = new THREE.Mesh(new THREE.BoxGeometry(12, 20, 1.6), new THREE.MeshStandardMaterial({color: 0xffffff}));
         door.position.set(0, 5, -2); door.name = "door_trigger"; scene.add(door);
+        
         const knob = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshStandardMaterial({color: 0xccaa00, metalness: 0.8}));
         knob.position.set(4, 0, 1); door.add(knob);
-
-        function addTrimWindow(x) {
-            const win = new THREE.Mesh(new THREE.BoxGeometry(18, 18, 1.5), new THREE.MeshBasicMaterial({color: 0x050505}));
-            const trim = new THREE.Mesh(new THREE.BoxGeometry(20, 20, 1.2), new THREE.MeshStandardMaterial({color: 0xffffff}));
-            const g = new THREE.Group();
-            g.add(trim, win); g.position.set(x, 14, -4); scene.add(g);
-        }
-        addTrimWindow(-28); addTrimWindow(28);
 
         const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(160, 1, 45), new THREE.MeshStandardMaterial({color: 0x444}));
         sidewalk.position.set(0, -5, 15); scene.add(sidewalk);
 
-        function addStreetLight(x) {
-            const g = new THREE.Group();
-            const p = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 22), new THREE.MeshStandardMaterial({color: 0x111}));
-            const b = new THREE.Mesh(new THREE.SphereGeometry(1.5), new THREE.MeshBasicMaterial({color: 0xffffaa}));
-            b.position.y = 11; const l = new THREE.PointLight(0xffaa00, 1500, 60); l.position.y = 11;
-            g.add(p, b, l); g.position.set(x, 5, 25); scene.add(g);
-        }
-        addStreetLight(-45); addStreetLight(45);
-
+        // --- PALM TREES & LIGHTS ---
         function addPalm(x) {
             const p = new THREE.Group();
             const t = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.2, 35), new THREE.MeshStandardMaterial({color: 0x664422}));
@@ -95,91 +78,61 @@
         }
         addPalm(-68); addPalm(68);
 
-        new FontLoader().load('https://threejs.org/examples/fonts/helvetiker_bold.typeface.json', (font) => {
-            const g = new TextGeometry('THE HEALING PARADIGM', { font, size: 4, height: 1 }); g.center();
-            const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({color: 0xffffff}));
-            m.position.set(0, 30, -3); scene.add(m);
-        });
+        // --- INTERIOR ELEMENTS ---
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 300), new THREE.MeshStandardMaterial({color: 0xffffff}));
+        floor.rotation.x = -Math.PI/2; floor.position.set(0, -4.9, -100); scene.add(floor);
 
-        // --- INTERIOR & MANIFESTO CHALKBOARD ---
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 160), new THREE.MeshStandardMaterial({color: 0xffffff}));
-        floor.rotation.x = -Math.PI/2; floor.position.set(0, -4.9, -80); scene.add(floor);
-
-        // Physical back wall box (Thick to prevent clipping)
-        const wallBack = new THREE.Mesh(new THREE.BoxGeometry(120, 60, 5), new THREE.MeshStandardMaterial({color: 0xdddddd}));
-        wallBack.position.set(0, 25, -150); scene.add(wallBack);
-
-        // Canvas setup
+        // THE CHALKBOARD CANVAS
         const canvas = document.createElement('canvas');
         canvas.width = 1024; canvas.height = 1024;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#1e211f'; ctx.fillRect(0, 0, 1024, 1024);
+        ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, 1024, 1024);
         
-        // Grain
-        for(let i=0; i<2500; i++) {
-            ctx.fillStyle = `rgba(255,255,255,${Math.random()*0.04})`;
-            ctx.fillRect(Math.random()*1024, Math.random()*1024, 2, 2);
-        }
-
-        ctx.shadowBlur = 4; ctx.shadowColor = "white";
-        ctx.fillStyle = 'white'; ctx.font = 'bold 44px Courier New'; ctx.textAlign = 'center';
+        // Chalk styling
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 50px Courier New';
         ctx.fillText('THE HEALING PARADIGM', 512, 100);
-        ctx.font = 'italic 30px Courier New'; ctx.fillText('What you’re supporting', 512, 160);
+        ctx.font = 'italic 34px Courier New';
+        ctx.fillText('Blueprint for Abundance', 512, 170);
         
-        ctx.font = '28px Courier New'; ctx.textAlign = 'left';
-        let yLine = 240; 
-        ['People are the wealth.', 'Scarcity is designed.', 'Healing restores abundance.'].forEach(t => { ctx.fillText(t, 150, yLine); yLine += 45; });
-        yLine += 40; ctx.font = 'bold 32px Courier New'; ctx.fillText('BLUEPRINT', 150, yLine); yLine += 50; ctx.font = '28px Courier New';
-        ['① Heal the Individual', '② Re-educate the People', '③ Rebuild Community', '④ Circulate Local Value', '⑤ Shared Sovereignty'].forEach(t => { ctx.fillText(t, 150, yLine); yLine += 45; });
-        yLine += 60; ctx.fillText('Music restores feeling.', 150, yLine); yLine += 40; ctx.fillText('Feeling restores power.', 150, yLine);
-        ctx.font = 'italic 24px Courier New'; ctx.fillText('This is an active prototype.', 150, yLine + 80);
+        ctx.textAlign = 'left';
+        ctx.font = '32px Courier New';
+        let yLine = 260;
+        ['• People are the wealth.', '• Scarcity is a choice.', '• Healing is the technology.'].forEach(t => { ctx.fillText(t, 100, yLine); yLine += 60; });
+        
+        yLine += 40;
+        ctx.font = 'bold 40px Courier New';
+        ctx.fillText('THE BLUEPRINT', 100, yLine);
+        yLine += 70;
+        ctx.font = '32px Courier New';
+        ['1. Heal the Mind', '2. Re-educate the Soul', '3. Rebuild the Tribe', '4. Circulate Value', '5. Shared Sovereignty'].forEach(t => { ctx.fillText(t, 100, yLine); yLine += 55; });
 
         const boardTex = new THREE.CanvasTexture(canvas);
-        const board = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({map: boardTex}));
-        // Positioned clearly in front of the wall
-        board.position.set(0, 25, -147.4); 
-        board.renderOrder = 1; 
-        
-        const frame = new THREE.Mesh(new THREE.BoxGeometry(64, 64, 1), new THREE.MeshStandardMaterial({color: 0x333333}));
-        frame.position.set(0, 25, -147.5);
-        scene.add(frame, board);
+        // Using MeshBasicMaterial ensures it is always "lit" and visible
+        const board = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshBasicMaterial({map: boardTex}));
+        // MOVED MUCH CLOSER (to -120)
+        board.position.set(0, 25, -120); 
+        scene.add(board);
 
-        // Dedicated light for the board
-        const bLight = new THREE.PointLight(0xffffff, 1000, 100);
-        bLight.position.set(0, 40, -120);
-        scene.add(bLight);
+        // CLERK & COUNTER
+        const counter = new THREE.Mesh(new THREE.BoxGeometry(30, 8, 8), new THREE.MeshStandardMaterial({color: 0xCC5500}));
+        counter.position.set(0, -1, -95); scene.add(counter);
 
-        function addCeilingLight(x, z) {
-            const g = new THREE.Group();
-            const fixture = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 0.5), new THREE.MeshStandardMaterial({color: 0x333}));
-            const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.8), new THREE.MeshBasicMaterial({color: 0xffffff}));
-            bulb.position.y = -0.4;
-            const l = new THREE.PointLight(0xffffff, 800, 50); l.position.y = -2;
-            g.add(fixture, bulb, l); g.position.set(x, 30, z); scene.add(g);
-        }
-        addCeilingLight(-25, -20); addCeilingLight(0, -20); addCeilingLight(25, -20);
-        addCeilingLight(-25, -85); addCeilingLight(0, -85); addCeilingLight(25, -85);
+        const clerk = new THREE.Group();
+        const head = new THREE.Mesh(new THREE.SphereGeometry(1.5), new THREE.MeshStandardMaterial({color: 0x5c4033})); head.position.y = 10;
+        const body = new THREE.Mesh(new THREE.CapsuleGeometry(2, 6), new THREE.MeshStandardMaterial({color: 0x222})); body.position.y = 5.5;
+        clerk.add(head, body); clerk.position.set(0, -5, -105); scene.add(clerk);
 
+        // TABLE & RECORD
         const table = new THREE.Mesh(new THREE.BoxGeometry(15, 6, 10), new THREE.MeshStandardMaterial({color: 0x3d2b1f}));
         table.position.set(0, -2, -45); scene.add(table);
-
-        const counter = new THREE.Mesh(new THREE.BoxGeometry(25, 8, 8), new THREE.MeshStandardMaterial({color: 0xCC5500}));
-        counter.position.set(0, -1, -85); scene.add(counter);
 
         const record = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 0.15, 64), new THREE.MeshStandardMaterial({color: 0x000, metalness: 0.9}));
         record.position.set(0, 1.1, -45); record.name = "vinyl"; scene.add(record);
 
-        const recordSpot = new THREE.SpotLight(0xffffff, 0, 100, 0.4);
-        recordSpot.position.set(0, 30, -45); recordSpot.target = record; scene.add(recordSpot);
-
-        const clerk = new THREE.Group();
-        const head = new THREE.Mesh(new THREE.SphereGeometry(1.2), new THREE.MeshStandardMaterial({color: 0x5c4033})); head.position.y = 10;
-        const body = new THREE.Mesh(new THREE.CapsuleGeometry(1.6, 6), new THREE.MeshStandardMaterial({color: 0x222})); body.position.y = 5.5;
-        const armL = new THREE.Group(); armL.position.set(-1.8, 8.5, 0); const a1 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 4, 0.7)); a1.position.y = -2; armL.add(a1);
-        const armR = new THREE.Group(); armR.position.set(1.8, 8.5, 0); const a2 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 4, 0.7)); a2.position.y = -2; armR.add(a2);
-        clerk.add(head, body, armL, armR); clerk.position.set(0, -5, -95); scene.add(clerk);
-
-        let step = 0, dancing = false, confetti = [];
+        // --- INPUT & LOGIC ---
+        let step = 0, dancing = false;
         function handleInput(clientX, clientY) {
             mouse.x = (clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(clientY / window.innerHeight) * 2 + 1;
@@ -187,6 +140,7 @@
             const hits = raycaster.intersectObjects(scene.children, true);
             if (!hits.length) return;
             const obj = hits[0].object;
+
             if (obj.name === "door_trigger") {
                 new TWEEN.Tween(camera.position).to({x:0, y:12, z:-10}, 1000).start();
                 document.getElementById('status').innerText = "CLICK VINYL RECORD";
@@ -194,12 +148,12 @@
                 if (step === 0) {
                     new TWEEN.Tween(record.position).to({y: 6.5, z: -25}, 800).start();
                     new TWEEN.Tween(record.rotation).to({x: Math.PI/2}, 800).start();
-                    recordSpot.intensity = 6000; step = 1;
+                    step = 1;
                 } else if (step === 1) {
-                    new TWEEN.Tween(record.position).to({x: 6, y: 3.2, z: -85}, 800).start();
+                    new TWEEN.Tween(record.position).to({x: 8, y: 3.5, z: -95}, 800).start();
                     new TWEEN.Tween(record.rotation).to({x: 0}, 800).start();
-                    new TWEEN.Tween(camera.position).to({x: 0, y: 12, z: -65}, 1000).start();
-                    recordSpot.intensity = 0; step = 2;
+                    new TWEEN.Tween(camera.position).to({x: 0, y: 15, z: -70}, 1000).start();
+                    step = 2;
                     document.getElementById('buy-btn').style.display = 'inline-block';
                     document.getElementById('wallet-btn').style.display = 'inline-block';
                 }
@@ -217,19 +171,12 @@
         document.getElementById('buy-btn').addEventListener('click', () => {
             dancing = true;
             new Audio('https://www.myinstants.com/media/sounds/ka-ching.mp3').play();
-            for(let i=0; i<100; i++) {
-                const c = new THREE.Mesh(new THREE.PlaneGeometry(0.4,0.4), new THREE.MeshBasicMaterial({color: Math.random()*0xffffff, side: 2}));
-                c.position.set(Math.random()*30-15, 25, -78 + (Math.random()*6-3)); 
-                scene.add(c); confetti.push(c);
-            }
         });
 
         document.getElementById('reset-btn').addEventListener('click', () => {
             step = 0; dancing = false;
             new TWEEN.Tween(camera.position).to({x:0, y:15, z:110}, 1000).start();
             record.position.set(0, 1.1, -45); record.rotation.set(0,0,0);
-            clerk.position.x = 0; clerk.rotation.y = 0;
-            recordSpot.intensity = 0;
             document.querySelectorAll('.btn').forEach(b => b.style.display = 'none');
             document.getElementById('reset-btn').style.display = 'inline-block';
             document.getElementById('status').innerText = "CLICK THE DOOR TO ENTER";
@@ -238,16 +185,11 @@
         function animate() {
             requestAnimationFrame(animate); TWEEN.update();
             const t = Date.now() * 0.002; 
-            confetti.forEach(c => { if(c.position.y > -5) c.position.y -= 0.25; });
             if (dancing) {
-                const cycle = Math.sin(t*2);
-                clerk.position.y = -5 + Math.abs(Math.sin(t*4)) * 1.5; 
-                clerk.position.x = cycle * 6; 
-                clerk.rotation.y = cycle * 0.4;
-                if (cycle > 0) { armL.rotation.z = 2.6; armR.rotation.z = 0.2; }
-                else { armR.rotation.z = -2.6; armL.rotation.z = -0.2; }
+                clerk.position.y = -5 + Math.abs(Math.sin(t*4)) * 2; 
+                clerk.position.x = Math.sin(t*2) * 8;
             }
-            camera.lookAt(0, 0, camera.position.z > 0 ? 0 : -120);
+            camera.lookAt(0, 0, camera.position.z > 0 ? 0 : -150);
             renderer.render(scene, camera);
         }
         animate();
