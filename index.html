@@ -44,20 +44,23 @@
         document.body.appendChild(renderer.domElement);
 
         const scene = new THREE.Scene();
-        // CAMERA STARTING ON STREET
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 15, 110); 
 
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
-        scene.add(new THREE.AmbientLight(0xffffff, 1.0));
-        const sun = new THREE.DirectionalLight(0xffffff, 0.5);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        const sun = new THREE.DirectionalLight(0xffffff, 0.6);
         sun.position.set(10, 20, 10); scene.add(sun);
 
         // --- EXTERIOR ---
         const bld = new THREE.Mesh(new THREE.BoxGeometry(90, 50, 10), new THREE.MeshStandardMaterial({color: 0x89CFF0}));
         bld.position.set(0, 15, -10); scene.add(bld);
+
+        // Back Wall of Interior (Where board is placed)
+        const backWall = new THREE.Mesh(new THREE.PlaneGeometry(120, 50), new THREE.MeshStandardMaterial({color: 0xeeeeee}));
+        backWall.position.set(0, 15, -160); scene.add(backWall);
 
         const door = new THREE.Mesh(new THREE.BoxGeometry(12, 20, 1.6), new THREE.MeshStandardMaterial({color: 0xffffff}));
         door.position.set(0, 5, -2); door.name = "door_trigger"; scene.add(door);
@@ -106,18 +109,19 @@
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 160), new THREE.MeshStandardMaterial({color: 0xffffff}));
         floor.rotation.x = -Math.PI/2; floor.position.set(0, -4.9, -80); scene.add(floor);
 
+        // Chalkboard Canvas
         const canvas = document.createElement('canvas');
         canvas.width = 1024; canvas.height = 1024;
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = '#1e211f'; ctx.fillRect(0, 0, 1024, 1024);
         
-        // Chalk Dust Effect
-        for(let i=0; i<2000; i++) {
+        // Grainy Chalk Dust
+        for(let i=0; i<1500; i++) {
             ctx.fillStyle = `rgba(255,255,255,${Math.random()*0.03})`;
             ctx.fillRect(Math.random()*1024, Math.random()*1024, 2, 2);
         }
 
-        ctx.shadowBlur = 3; ctx.shadowColor = "white";
+        ctx.shadowBlur = 4; ctx.shadowColor = "white";
         ctx.fillStyle = 'white'; ctx.font = 'bold 44px Courier New'; ctx.textAlign = 'center';
         ctx.fillText('THE HEALING PARADIGM', 512, 100);
         ctx.font = 'italic 30px Courier New'; ctx.fillText('What you’re supporting', 512, 160);
@@ -131,12 +135,18 @@
         ctx.font = 'italic 24px Courier New'; ctx.fillText('This is an active prototype.', 150, y + 80);
 
         const boardTex = new THREE.CanvasTexture(canvas);
-        const board = new THREE.Mesh(new THREE.PlaneGeometry(50, 50), new THREE.MeshStandardMaterial({map: boardTex}));
-        board.position.set(0, 18, -158.8); 
+        const board = new THREE.Mesh(new THREE.PlaneGeometry(55, 55), new THREE.MeshStandardMaterial({map: boardTex}));
+        // Positioned at -159.5 so it sits slightly in front of the backWall at -160
+        board.position.set(0, 20, -159.5); 
         
-        const frame = new THREE.Mesh(new THREE.BoxGeometry(52, 52, 1), new THREE.MeshStandardMaterial({color: 0x222222}));
-        frame.position.set(0, 18, -159);
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(58, 58, 1), new THREE.MeshStandardMaterial({color: 0x333333}));
+        frame.position.set(0, 20, -159.8);
         scene.add(frame, board);
+
+        // Light specifically for the board
+        const boardLight = new THREE.PointLight(0xffffff, 500, 80);
+        boardLight.position.set(0, 25, -140);
+        scene.add(boardLight);
 
         function addCeilingLight(x, z) {
             const g = new THREE.Group();
@@ -161,7 +171,6 @@
         const recordSpot = new THREE.SpotLight(0xffffff, 0, 100, 0.4);
         recordSpot.position.set(0, 30, -45); recordSpot.target = record; scene.add(recordSpot);
 
-        // CLERK
         const clerk = new THREE.Group();
         const head = new THREE.Mesh(new THREE.SphereGeometry(1.2), new THREE.MeshStandardMaterial({color: 0x5c4033})); head.position.y = 10;
         const body = new THREE.Mesh(new THREE.CapsuleGeometry(1.6, 6), new THREE.MeshStandardMaterial({color: 0x222})); body.position.y = 5.5;
@@ -169,7 +178,6 @@
         const armR = new THREE.Group(); armR.position.set(1.8, 8.5, 0); const a2 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 4, 0.7)); a2.position.y = -2; armR.add(a2);
         clerk.add(head, body, armL, armR); clerk.position.set(0, -5, -95); scene.add(clerk);
 
-        // --- INPUT & LOGIC ---
         let step = 0, dancing = false, confetti = [];
         function handleInput(clientX, clientY) {
             mouse.x = (clientX / window.innerWidth) * 2 - 1;
