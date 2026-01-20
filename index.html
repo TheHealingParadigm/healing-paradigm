@@ -118,7 +118,7 @@
         yLine += 40; ctx.font = 'bold 32px Courier New'; ctx.fillText('BLUEPRINT', 150, yLine); yLine += 50; ctx.font = '28px Courier New';
         ['① Heal the Individual', '② Re-educate the People', '③ Rebuild Community', '④ Circulate Local Value', '⑤ Shared Sovereignty'].forEach(t => { ctx.fillText(t, 150, yLine); yLine += 45; });
         yLine += 60; ctx.fillText('Music restores feeling.', 150, yLine); yLine += 40; ctx.fillText('Feeling restores power.', 150, yLine);
-        ctx.font = 'italic 24px Courier New'; ctx.fillText('This is an active prototype.', 150, yLine + 80);
+        ctx.font = 'italic 24px Courier New'; ctx.fillText('This is an active Blueprint.', 150, yLine + 80);
 
         const boardTex = new THREE.CanvasTexture(canvas);
         const board = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshBasicMaterial({map: boardTex}));
@@ -207,7 +207,7 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                document.getElementById('status').innerText = "MANIFESTO DOWNLOADED";
+                document.getElementById('status').innerText = "EP - "Leading To The Lake" DOWNLOADED";
             }, 1000);
         });
 
